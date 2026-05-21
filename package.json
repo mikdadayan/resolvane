@@ -1,0 +1,9 @@
+{
+  "name": "helpdesk",
+  "private": true,
+  "scripts": {
+    "dev:server": "cd server && bun dev",
+    "dev:client": "cd client && bun dev",
+    "dev": "bun run dev:server & bun run dev:client"
+  }
+}
