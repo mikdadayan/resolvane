@@ -9,12 +9,14 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6"
+    "@types/express": "^5.0.6",
+    "prisma": "^7.8.0"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
+    "@prisma/client": "^7.8.0",
     "cors": "^2.8.6",
     "express": "^5.2.1"
   }
