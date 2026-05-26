@@ -25,7 +25,7 @@ cd client && bun dev
 - **Frontend**: React, TypeScript, Vite, Tailwind CSS v4, React Router v7
 - **Backend**: Bun, Express, TypeScript
 - **Database**: PostgreSQL + Prisma
-- **Auth**: express-session + connect-pg-simple (database sessions)
+- **Auth**: better-auth (email/password, database-backed sessions via Prisma adapter)
 - **AI**: Anthropic Claude API
 - **Email**: SendGrid or Mailgun
 
@@ -38,4 +38,4 @@ Always use **context7** (`mcp__context7`) to fetch up-to-date documentation befo
 mcp__context7__resolve-library-id → mcp__context7__query-docs
 ```
 
-Libraries in use: `express`, `react`, `react-router-dom`, `prisma`, `tailwindcss`, `@anthropic-ai/sdk`, `express-session`, `connect-pg-simple`, `cors`.
+Libraries in use: `express`, `react`, `react-router-dom`, `prisma`, `tailwindcss`, `@anthropic-ai/sdk`, `better-auth`, `cors`.
