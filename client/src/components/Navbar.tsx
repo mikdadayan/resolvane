@@ -12,15 +12,15 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="flex items-center justify-between px-6 py-4 bg-gray-900">
-      <span className="text-lg font-semibold text-white">Helpdesk</span>
+    <nav className="flex items-center justify-between px-6 py-4 bg-background border-b border-border">
+      <span className="text-lg font-semibold text-foreground">Helpdesk</span>
       <div className="flex items-center gap-4">
         {session && (
-          <span className="text-sm text-gray-300">{session.user.name}</span>
+          <span className="text-sm text-muted-foreground">{session.user.name}</span>
         )}
         <button
           onClick={handleSignOut}
-          className="text-sm px-3 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 text-gray-100 transition-colors"
+          className="text-sm px-3 py-1.5 rounded-md bg-secondary hover:bg-secondary/80 text-secondary-foreground transition-colors"
         >
           Sign out
         </button>
