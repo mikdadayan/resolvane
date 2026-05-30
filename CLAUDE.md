@@ -1,6 +1,6 @@
 # Helpdesk — Project Context
 
-An AI-powered ticket management system. Support emails arrive as tickets, which are automatically classified and summarized by Claude. Agents can review AI-suggested replies before sending.
+An AI-powered ticket management system. Support emails arrive as tickets, automatically classified and summarized by Claude. Agents review AI-suggested replies before sending.
 
 ## Structure
 
@@ -13,10 +13,7 @@ helpdesk/
 ## Running the apps
 
 ```sh
-# Server
 cd server && bun --hot src/index.ts
-
-# Client
 cd client && bun dev
 ```
 
@@ -33,93 +30,78 @@ cd client && bun dev
 
 - **Component library**: shadcn/ui — add components with `bunx shadcn@latest add <component>`
 - **Path alias**: `@/` resolves to `client/src/` — always use `@/` for imports, never relative paths across directories
-- **Styling**: Tailwind CSS v4 utility classes only — no custom CSS files. Use shadcn semantic tokens (`bg-background`, `text-foreground`, `text-destructive`, etc.) over raw Tailwind color classes where possible
+- **Styling**: Tailwind CSS v4 utility classes only — no custom CSS files. Use shadcn semantic tokens over raw Tailwind color classes where possible
 - **No `tailwind.config.js`**: v4 is CSS-first; all theme config lives in `src/index.css` under `@theme inline`
 - **Pages**: one file per page under `src/pages/`, one file per component under `src/components/`
+
+## Server file layout
+
+```
+server/src/
+├── lib/
+│   ├── auth.ts          # better-auth instance
+│   ├── prisma.ts        # Prisma client singleton
+│   └── types.ts         # re-exports Prisma enums (e.g. Role)
+├── middleware/
+│   └── require-auth.ts  # Express middleware — populates req.user and req.session
+├── types/
+│   └── express.d.ts     # augments Express Request with user and session types
+└── index.ts             # app entry point — mounts routes
+```
+
+Key server conventions:
+- Auth handler (`toNodeHandler(auth)`) must be registered at `/api/auth/*` **before** `express.json()`.
+- Use `requireAuth` middleware on any route that needs an authenticated user — it populates `req.user` and `req.session`.
+- `req.user` and `req.session` types come from `typeof auth.$Infer.Session` via the express augmentation in `types/express.d.ts`.
+- New users are created manually by scripting against Prisma directly (see `prisma/seed.ts` for the pattern — hash the password with `hashPassword` from `better-auth/crypto`).
 
 ## Client file layout
 
 ```
 client/src/
 ├── components/
-│   ├── ui/          # shadcn-generated components (do not hand-edit)
+│   ├── ui/              # shadcn-generated (do not hand-edit)
+│   ├── AdminRoute.tsx   # redirects non-admins to /
 │   ├── Layout.tsx
 │   ├── Navbar.tsx
-│   └── ProtectedRoute.tsx
+│   └── ProtectedRoute.tsx  # redirects unauthenticated users to /login
 ├── lib/
 │   ├── auth-client.ts
-│   └── utils.ts     # shadcn cn() helper
+│   └── utils.ts
 ├── pages/
+│   ├── HomePage.tsx
 │   ├── LoginPage.tsx
-│   └── HomePage.tsx
-├── index.css        # Tailwind imports + shadcn theme tokens
+│   └── UsersPage.tsx    # admin-only
+├── index.css
 └── main.tsx
 ```
 
 ## Authentication
 
-**Library**: better-auth with Prisma adapter (PostgreSQL).
+- Sessions are database-backed via Prisma.
+- Sign-up is **disabled** — users must be created manually (see `server/prisma/seed.ts` for the pattern).
+- Users have a `role` field: `"admin"` | `"agent"` (defaults to `"agent"`, not settable by the client).
+- Auth routes are mounted at `/api/auth/*` and must be registered **before** `express.json()`.
+- `inferAdditionalFields<typeof auth>()` plugin is required in `auth-client.ts` for `session.user.role` to be typed on the client.
 
-### How it works
-- Sessions are database-backed (stored in the `session` table via Prisma).
-- Sign-up is **disabled** — only the seeded admin account can exist initially. New users must be created manually.
-- The user model has a custom `role` field: `"admin"` | `"agent"` (defaults to `"agent"`, not settable by the client).
-- All auth routes are mounted at `/api/auth/*` on the server via `toNodeHandler(auth)` — this must be registered **before** `express.json()`.
+### Route protection
 
-### Server
-
-```ts
-// server/src/lib/auth.ts — auth instance
-import { betterAuth } from "better-auth";
-import { prismaAdapter } from "better-auth/adapters/prisma";
-
-export const auth = betterAuth({
-  database: prismaAdapter(prisma, { provider: "postgresql" }),
-  emailAndPassword: { enabled: true, disableSignUp: true },
-  trustedOrigins: [...],
-  user: { additionalFields: { role: { type: ["admin", "agent"] } } },
-});
-```
-
-```ts
-// Protecting an Express route — use the requireAuth middleware
-import { requireAuth } from "./middleware/require-auth";
-app.get("/api/me", requireAuth, (req, res) => { ... });
-// req.user and req.session are populated after the middleware runs
-```
-
-### Client
-
-```ts
-// client/src/lib/auth-client.ts
-import { createAuthClient } from "better-auth/react";
-export const authClient = createAuthClient({ baseURL: import.meta.env.VITE_SERVER_BASE_URL });
-
-// Usage in components
-const { data: session, isPending } = authClient.useSession();
-await authClient.signIn.email({ email, password, fetchOptions: { onSuccess: () => navigate("/") } });
-await authClient.signOut({ fetchOptions: { onSuccess: () => navigate("/login") } });
-```
-
-`ProtectedRoute` wraps all authenticated pages — redirects to `/login` if no session, shows a spinner while `isPending`.
+- `ProtectedRoute` — requires a valid session; wraps all authenticated pages.
+- `AdminRoute` — requires `role === "admin"`; nested inside `ProtectedRoute` in the route tree.
+- Navbar shows the Users link only to admins (`session.user.role === "admin"`).
 
 ### Environment variables
 
 | Variable | Where | Purpose |
 |---|---|---|
-| `BETTER_AUTH_SECRET` | server | JWT signing secret — generate with `openssl rand -hex 32` |
-| `BETTER_AUTH_URL` | server | Public URL of the server (e.g. `http://localhost:3000`) |
-| `BETTER_AUTH_TRUSTED_ORIGINS` | server | Comma-separated list of allowed client origins |
-| `VITE_SERVER_BASE_URL` | client | Base URL for all API calls (e.g. `http://localhost:3000`) |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | server | Seed credentials — run `bun prisma/seed.ts` to create the admin user |
+| `BETTER_AUTH_SECRET` | server | Signing secret — generate with `openssl rand -hex 32` |
+| `BETTER_AUTH_URL` | server | Public URL of the server |
+| `BETTER_AUTH_TRUSTED_ORIGINS` | server | Comma-separated allowed client origins |
+| `VITE_SERVER_BASE_URL` | client | Base URL for all API calls |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | server | Seed credentials for the admin user |
 
 ## Documentation
 
-Always use **context7** (`mcp__context7`) to fetch up-to-date documentation before using any library or framework. Do not rely on training data for API syntax, configuration, or version-specific behavior.
-
-```
-# Example: resolve the library ID first, then fetch docs
-mcp__context7__resolve-library-id → mcp__context7__query-docs
-```
+Always use **context7** (`mcp__context7`) to fetch up-to-date docs before using any library. Do not rely on training data for API syntax or version-specific behavior. Resolve library ID first, then query docs.
 
 Libraries in use: `express`, `react`, `react-router-dom`, `prisma`, `tailwindcss`, `@anthropic-ai/sdk`, `better-auth`, `cors`, `shadcn`, `lucide-react`, `react-hook-form`, `zod`.
