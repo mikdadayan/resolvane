@@ -105,12 +105,7 @@ client/src/
 
 ## Testing
 
-- **Framework**: Playwright (`@playwright/test`), configured at root in `playwright.config.ts`
-- **Test directory**: `e2e/` at repo root
-- **Test database**: `helpdesk_test` (PostgreSQL) — separate from the dev `helpdesk` DB, fully migrated
-- Server runs on port `3001` during tests; client on port `5174` — both started automatically by Playwright's `webServer`
-- Test env files: `server/.env.test` and `client/.env.test` (gitignored; use `.env.test.example` as template)
-- To re-seed the test DB: `cd server && bun --env-file .env.test prisma/seed.ts`
+E2e tests live in `e2e/` and run with Playwright. Always use the **`playwright-e2e-writer`** agent to write tests — never write them inline.
 
 ```sh
 bun run test:e2e        # run all e2e tests (headless)
