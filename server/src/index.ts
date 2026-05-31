@@ -18,16 +18,18 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors({ origin: /^http:\/\/localhost(:\d+)?$/, credentials: true }));
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many requests, please try again later." },
-});
+if (process.env.NODE_ENV === "production") {
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many requests, please try again later." },
+  });
+  app.use("/api/auth/sign-in", authLimiter);
+}
 
 // Must be before express.json()
-app.use("/api/auth/sign-in", authLimiter);
 app.all("/api/auth/*splat", toNodeHandler(auth));
 
 app.use(express.json());

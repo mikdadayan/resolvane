@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "types": ["node"],
+    "strict": true
+  },
+  "include": ["playwright.config.ts", "e2e/**/*.ts"]
+}

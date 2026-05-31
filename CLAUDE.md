@@ -43,7 +43,8 @@ server/src/
 │   ├── prisma.ts        # Prisma client singleton
 │   └── types.ts         # re-exports Prisma enums (e.g. Role)
 ├── middleware/
-│   └── require-auth.ts  # Express middleware — populates req.user and req.session
+│   ├── require-auth.ts  # validates session, populates req.user and req.session
+│   └── require-admin.ts # checks req.user.role === "admin", returns 403 otherwise
 ├── types/
 │   └── express.d.ts     # augments Express Request with user and session types
 └── index.ts             # app entry point — mounts routes
@@ -51,9 +52,11 @@ server/src/
 
 Key server conventions:
 - Auth handler (`toNodeHandler(auth)`) must be registered at `/api/auth/*` **before** `express.json()`.
-- Use `requireAuth` middleware on any route that needs an authenticated user — it populates `req.user` and `req.session`.
+- Use `requireAuth` on any authenticated route; use `requireAuth, requireAdmin` on admin-only routes.
 - `req.user` and `req.session` types come from `typeof auth.$Infer.Session` via the express augmentation in `types/express.d.ts`.
-- New users are created manually by scripting against Prisma directly (see `prisma/seed.ts` for the pattern — hash the password with `hashPassword` from `better-auth/crypto`).
+- New users are created manually by scripting against Prisma directly (see `prisma/seed.ts` for the pattern — hash with `hashPassword` from `better-auth/crypto`).
+- Rate limiting on `/api/auth/sign-in` is active **only in production** (`NODE_ENV=production`).
+- Required env vars (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`) are validated at startup — the server throws immediately if any are missing.
 
 ## Client file layout
 
@@ -99,6 +102,20 @@ client/src/
 | `BETTER_AUTH_TRUSTED_ORIGINS` | server | Comma-separated allowed client origins |
 | `VITE_SERVER_BASE_URL` | client | Base URL for all API calls |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | server | Seed credentials for the admin user |
+
+## Testing
+
+- **Framework**: Playwright (`@playwright/test`), configured at root in `playwright.config.ts`
+- **Test directory**: `e2e/` at repo root
+- **Test database**: `helpdesk_test` (PostgreSQL) — separate from the dev `helpdesk` DB, fully migrated
+- Server runs on port `3001` during tests; client on port `5174` — both started automatically by Playwright's `webServer`
+- Test env files: `server/.env.test` and `client/.env.test` (gitignored; use `.env.test.example` as template)
+- To re-seed the test DB: `cd server && bun --env-file .env.test prisma/seed.ts`
+
+```sh
+bun run test:e2e        # run all e2e tests (headless)
+bun run test:e2e:ui     # open Playwright UI
+```
 
 ## Documentation
 
