@@ -1,23 +1,30 @@
-import { useEffect, useState } from "react";
+import axios from "axios";
+import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+
+async function fetchHealth(): Promise<string> {
+  const res = await axios.get(`${import.meta.env.VITE_SERVER_BASE_URL}/health`);
+  return res.data.status;
+}
 
 export default function HomePage() {
-  const [status, setStatus] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch(`${import.meta.env.VITE_SERVER_BASE_URL}/health`)
-      .then((res) => res.json())
-      .then((data) => setStatus(data.status))
-      .catch(() => setStatus("error"));
-  }, []);
+  const { data: status, isPending } = useQuery({
+    queryKey: ["health"],
+    queryFn: fetchHealth,
+  });
 
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-4">Helpdesk</h1>
       <p>
         Server status:{" "}
-        <span className={status === "ok" ? "text-green-600" : "text-red-600"}>
-          {status ?? "checking..."}
-        </span>
+        {isPending ? (
+          <Skeleton className="inline-block h-4 w-8 align-middle" />
+        ) : (
+          <span className={status === "ok" ? "text-green-600" : "text-red-600"}>
+            {status}
+          </span>
+        )}
       </p>
     </div>
   );

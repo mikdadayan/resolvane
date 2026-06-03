@@ -33,6 +33,7 @@ cd client && bun dev
 - **Styling**: Tailwind CSS v4 utility classes only — no custom CSS files. Use shadcn semantic tokens over raw Tailwind color classes where possible
 - **No `tailwind.config.js`**: v4 is CSS-first; all theme config lives in `src/index.css` under `@theme inline`
 - **Pages**: one file per page under `src/pages/`, one file per component under `src/components/`
+- **Data fetching**: always use **axios** for HTTP requests and **TanStack Query** (`useQuery`, `useMutation`) for server state — never use raw `fetch` or `useEffect` for data fetching
 
 ## Server file layout
 
