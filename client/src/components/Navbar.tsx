@@ -13,13 +13,15 @@ export default function Navbar() {
 
   return (
     <nav className="flex items-center justify-between px-6 py-4 bg-background border-b border-border">
-      <span className="text-lg font-semibold text-foreground">Helpdesk</span>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-6">
+        <span className="text-lg font-semibold text-foreground">Helpdesk</span>
         {session?.user.role === "admin" && (
           <Link to="/users" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Users
           </Link>
         )}
+      </div>
+      <div className="flex items-center gap-4">
         {session && (
           <span className="text-sm text-muted-foreground">{session.user.name}</span>
         )}
