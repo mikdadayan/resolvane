@@ -106,6 +106,54 @@ client/src/
 
 ## Testing
 
+### Component tests (Vitest + React Testing Library)
+
+Component tests live alongside their page/component file as `*.test.tsx`.
+
+```sh
+bun run test:components   # run all component tests (verbose)
+bun run test              # run all component tests (silent)
+bun run test:watch        # watch mode
+```
+
+**Stack**: Vitest + jsdom + `@testing-library/react` + `@testing-library/jest-dom` + MSW.
+
+**Shared render helper** — always use `renderWithQuery` from `@/test/utils` instead of calling `render` directly. It wraps the component in `QueryClientProvider` (retries disabled) and `MemoryRouter`:
+
+```ts
+import { renderWithQuery } from "@/test/utils";
+
+renderWithQuery(<MyPage />);
+```
+
+**HTTP mocking** — use MSW (`msw/node` + `setupServer`) to intercept requests at the network level. Set up handlers with `http.get` / `http.post` from `msw`, and always stub `VITE_SERVER_BASE_URL`:
+
+```ts
+import { http, HttpResponse } from "msw";
+import { setupServer } from "msw/node";
+import { vi } from "vitest";
+
+vi.stubEnv("VITE_SERVER_BASE_URL", "http://localhost:3000");
+
+const server = setupServer(
+  http.get("http://localhost:3000/api/something", () =>
+    HttpResponse.json({ ... })
+  )
+);
+
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
+```
+
+Use `server.use(...)` inside an individual test to override a handler for that test only (e.g. error cases).
+
+**What to test in component tests**: loading/skeleton state, rendered data, error messages, role-based rendering. Do not test routing or authentication flows — those belong in e2e tests.
+
+**TypeScript**: `globals: true` is set in vitest config and `"vitest/globals"` is in `tsconfig.app.json` types — `describe`, `it`, `expect`, `beforeAll`, etc. are available without importing. Only import `vi` explicitly when needed.
+
+### E2e tests (Playwright)
+
 E2e tests live in `e2e/` and run with Playwright. Always use the **`playwright-e2e-writer`** agent to write tests — never write them inline.
 
 ```sh
