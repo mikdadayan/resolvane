@@ -4,8 +4,7 @@ import rateLimit from "express-rate-limit";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./lib/auth";
 import { requireAuth } from "./middleware/require-auth";
-import { requireAdmin } from "./middleware/require-admin";
-import { prisma } from "./lib/prisma";
+import usersRouter from "./routes/users";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 const BETTER_AUTH_SECRET = process.env.BETTER_AUTH_SECRET;
@@ -45,13 +44,7 @@ app.get("/api/me", requireAuth, (req, res) => {
   res.json({ user: { id, name, email, role, createdAt } });
 });
 
-app.get("/api/users", requireAuth, requireAdmin, async (_req, res) => {
-  const users = await prisma.user.findMany({
-    select: { id: true, name: true, email: true, role: true, createdAt: true },
-    orderBy: { createdAt: "desc" },
-  });
-  res.json({ users });
-});
+app.use("/api/users", usersRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

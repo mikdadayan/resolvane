@@ -46,6 +46,8 @@ server/src/
 ├── middleware/
 │   ├── require-auth.ts  # validates session, populates req.user and req.session
 │   └── require-admin.ts # checks req.user.role === "admin", returns 403 otherwise
+├── routes/
+│   └── users.ts         # GET /api/users, POST /api/users (admin-only)
 ├── types/
 │   └── express.d.ts     # augments Express Request with user and session types
 └── index.ts             # app entry point — mounts routes
@@ -58,6 +60,7 @@ Key server conventions:
 - New users are created manually by scripting against Prisma directly (see `prisma/seed.ts` for the pattern — hash with `hashPassword` from `better-auth/crypto`).
 - Rate limiting on `/api/auth/sign-in` is active **only in production** (`NODE_ENV=production`).
 - Required env vars (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`) are validated at startup — the server throws immediately if any are missing.
+- **Request body validation**: always use **zod** (`safeParse`) to validate request bodies. Define a schema above the route handler and return the first issue message as `{ error }` with a 400 status on failure.
 
 ## Client file layout
 

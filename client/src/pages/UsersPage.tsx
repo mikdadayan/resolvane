@@ -1,3 +1,4 @@
+import { useState } from "react";
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -9,6 +10,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { UserPlus } from "lucide-react";
+import CreateUserDialog from "@/components/CreateUserDialog";
 
 type User = {
   id: string;
@@ -26,6 +30,7 @@ async function fetchUsers(): Promise<User[]> {
 }
 
 export default function UsersPage() {
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { data: users, isPending, error } = useQuery({
     queryKey: ["users"],
     queryFn: fetchUsers,
@@ -33,7 +38,15 @@ export default function UsersPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-8">
-      <h1 className="text-2xl font-semibold text-foreground mb-6">Users</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-semibold text-foreground">Users</h1>
+        <Button onClick={() => setDialogOpen(true)}>
+          <UserPlus className="mr-2 h-4 w-4" />
+          New User
+        </Button>
+      </div>
+
+      <CreateUserDialog open={dialogOpen} onOpenChange={setDialogOpen} />
 
       {error && (
         <p className="text-sm text-destructive">{error.message}</p>

@@ -12,6 +12,7 @@
         "express": "^5.2.1",
         "express-rate-limit": "^8.5.2",
         "pg": "^8.21.0",
+        "zod": "^4.4.3",
       },
       "devDependencies": {
         "@types/bun": "latest",
