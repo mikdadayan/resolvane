@@ -1,9 +1,10 @@
 import { screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { vi } from "vitest";
 import { renderWithQuery } from "@/test/utils";
-import UsersPage from "./UsersPage";
+import UsersPage from ".";
 
 const BASE_URL = "http://localhost:3000";
 
@@ -74,6 +75,40 @@ describe("UsersPage", () => {
 
     const formatted = new Date("2024-01-15T00:00:00.000Z").toLocaleDateString();
     expect(screen.getByText(formatted)).toBeInTheDocument();
+  });
+
+  describe("Create User dialog", () => {
+    it("opens when New User button is clicked", async () => {
+      const user = userEvent.setup();
+      renderWithQuery(<UsersPage />);
+
+      await user.click(screen.getByRole("button", { name: /new user/i }));
+
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /create user/i })).toBeInTheDocument();
+    });
+
+    it("closes when Escape is pressed", async () => {
+      const user = userEvent.setup();
+      renderWithQuery(<UsersPage />);
+
+      await user.click(screen.getByRole("button", { name: /new user/i }));
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+      await user.keyboard("{Escape}");
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("closes when clicking outside the dialog", async () => {
+      const user = userEvent.setup();
+      renderWithQuery(<UsersPage />);
+
+      await user.click(screen.getByRole("button", { name: /new user/i }));
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+      await user.click(document.querySelector('[data-slot="dialog-overlay"]')!);
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
   });
 
   it("shows an error message when the request fails", async () => {

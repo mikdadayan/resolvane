@@ -7,6 +7,7 @@ An AI-powered ticket management system. Support emails arrive as tickets, automa
 ```
 helpdesk/
 ├── client/     # React + Vite + TypeScript (port 5173)
+├── core/       # Shared zod schemas — imported by both client and server
 └── server/     # Bun + Express + TypeScript (port 3000)
 ```
 
@@ -34,6 +35,7 @@ cd client && bun dev
 - **No `tailwind.config.js`**: v4 is CSS-first; all theme config lives in `src/index.css` under `@theme inline`
 - **Pages**: one file per page under `src/pages/`, one file per component under `src/components/`
 - **Data fetching**: always use **axios** for HTTP requests and **TanStack Query** (`useQuery`, `useMutation`) for server state — never use raw `fetch` or `useEffect` for data fetching
+- **Forms**: always use **react-hook-form** with **`zodResolver`** and a **zod** schema — never manage form state with `useState`. Import the schema from `@helpdesk/core` (see below), infer the type with `z.infer<typeof schema>`, and wire up with `useForm<FormValues>({ resolver: zodResolver(schema) })`. Display field errors from `formState.errors` inline beneath each input.
 
 ## Server file layout
 
@@ -66,22 +68,29 @@ Key server conventions:
 
 ```
 client/src/
-├── components/
+├── components/          # shared across multiple pages — reusable only
 │   ├── ui/              # shadcn-generated (do not hand-edit)
-│   ├── AdminRoute.tsx   # redirects non-admins to /
+│   ├── AdminRoute.tsx
 │   ├── Layout.tsx
 │   ├── Navbar.tsx
-│   └── ProtectedRoute.tsx  # redirects unauthenticated users to /login
+│   └── ProtectedRoute.tsx
 ├── lib/
 │   ├── auth-client.ts
 │   └── utils.ts
 ├── pages/
-│   ├── HomePage.tsx
-│   ├── LoginPage.tsx
-│   └── UsersPage.tsx    # admin-only
+│   ├── SimplePage.tsx           # single-file form: no private sub-components
+│   └── FooPage/                 # folder form: page has private sub-components
+│       ├── index.tsx            # page component — imported as "@/pages/FooPage"
+│       └── components/          # components used only by this page
+│           └── ...
 ├── index.css
 └── main.tsx
 ```
+
+**Component placement rules — always apply these:**
+- **`pages/FooPage/components/`** — any component that only makes sense within one specific page. Never import these from another page.
+- **`src/components/`** — components reused across two or more pages or features. If a component is not yet shared, keep it in the page folder until it is.
+- **Page file vs. folder:** use a single `FooPage.tsx` file when the page has no private sub-components. As soon as private components are added, convert to the folder form (`FooPage/index.tsx` + `FooPage/components/`). The import path at the call site never changes.
 
 ## Authentication
 
@@ -111,7 +120,10 @@ client/src/
 
 ### Component tests (Vitest + React Testing Library)
 
-Component tests live alongside their page/component file as `*.test.tsx`.
+Component tests live **alongside** their page/component file as `*.test.tsx`:
+- Single-file page `FooPage.tsx` → `FooPage.test.tsx` (same folder)
+- Folder-form page `FooPage/index.tsx` → `FooPage/index.test.tsx` (inside the folder)
+- Page-private component `FooPage/components/Bar.tsx` → `FooPage/components/Bar.test.tsx`
 
 ```sh
 bun run test:components   # run all component tests (verbose)
@@ -163,6 +175,23 @@ E2e tests live in `e2e/` and run with Playwright. Always use the **`playwright-e
 bun run test:e2e        # run all e2e tests (headless)
 bun run test:e2e:ui     # open Playwright UI
 ```
+
+## Shared code (`core/`)
+
+The `core/` package (`@helpdesk/core`) holds zod schemas that are used on **both** the client and server. It has no build step — both sides import TypeScript source directly via path aliases.
+
+```
+core/src/
+├── schemas/
+│   └── user.ts      # createUserSchema, CreateUserInput
+└── index.ts         # re-exports everything
+```
+
+**Rules:**
+- Any zod schema shared between client and server lives in `core/src/schemas/`.
+- Import as `import { mySchema, type MyInput } from "@helpdesk/core"` — never duplicate schemas in client or server.
+- The path alias is configured in `client/tsconfig.app.json` + `client/vite.config.ts` (for the client) and `server/tsconfig.json` (for Bun). No install step needed.
+- `core` has no runtime dependencies — only `zod` as a peer dependency (already installed in both client and server).
 
 ## Documentation
 

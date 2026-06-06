@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { createUserSchema, type CreateUserInput } from "@helpdesk/core";
 import axios from "axios";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -12,16 +12,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import UserForm from "./UserForm";
 
-const schema = z.object({
-  name: z.string().min(3, "Name must be at least 3 characters"),
-  email: z.email("Enter a valid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-});
-
-type FormValues = z.infer<typeof schema>;
+type FormValues = CreateUserInput;
 
 interface Props {
   open: boolean;
@@ -36,8 +29,12 @@ export default function CreateUserDialog({ open, onOpenChange }: Props) {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  } = useForm<FormValues>({
+    resolver: zodResolver(createUserSchema),
+    defaultValues: { role: "agent" },
+  });
 
   const mutation = useMutation({
     mutationFn: (data: FormValues) =>
@@ -82,47 +79,12 @@ export default function CreateUserDialog({ open, onOpenChange }: Props) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
-          <div className="space-y-1">
-            <Label htmlFor="name">Name</Label>
-            <Input id="name" placeholder="Jane Doe" {...register("name")} />
-            {errors.name && (
-              <p className="text-xs text-destructive">{errors.name.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-1">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="jane@example.com"
-              autoComplete="new-password"
-              {...register("email")}
-            />
-            {errors.email && (
-              <p className="text-xs text-destructive">{errors.email.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-1">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              autoComplete="new-password"
-              {...register("password")}
-            />
-            {errors.password && (
-              <p className="text-xs text-destructive">
-                {errors.password.message}
-              </p>
-            )}
-          </div>
-
-          {serverError && (
-            <p className="text-sm text-destructive">{serverError}</p>
-          )}
+          <UserForm
+            register={register}
+            control={control}
+            errors={errors}
+            serverError={serverError}
+          />
 
           <DialogFooter className="pt-2">
             <Button

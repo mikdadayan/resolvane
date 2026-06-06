@@ -1,0 +1,9 @@
+{
+  "name": "@helpdesk/core",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "peerDependencies": {
+    "zod": "^4.4.3"
+  }
+}
