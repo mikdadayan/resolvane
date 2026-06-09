@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createUserSchema, type CreateUserInput } from "@helpdesk/core";
+import { Role, createUserSchema, type CreateUserInput } from "@helpdesk/core";
 import axios from "axios";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -33,7 +33,7 @@ export default function CreateUserDialog({ open, onOpenChange }: Props) {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(createUserSchema),
-    defaultValues: { role: "agent" },
+    defaultValues: { role: Role.agent },
   });
 
   const mutation = useMutation({

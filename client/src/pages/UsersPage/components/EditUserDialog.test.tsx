@@ -4,6 +4,7 @@ import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { vi } from "vitest";
 import { renderWithQuery } from "@/test/utils";
+import { Role } from "@helpdesk/core";
 import EditUserDialog from "./EditUserDialog";
 import type { User } from "../types";
 
@@ -15,7 +16,7 @@ const mockUser: User = {
   id: "1",
   name: "Jane Doe",
   email: "jane@example.com",
-  role: "agent",
+  role: Role.agent,
   createdAt: "2024-01-15T00:00:00.000Z",
 };
 
@@ -108,7 +109,7 @@ describe("EditUserDialog", () => {
           name: "Jane Doe",
           email: "jane@example.com",
           password: "newpassword123",
-          role: "agent",
+          role: Role.agent,
         })
       );
     });

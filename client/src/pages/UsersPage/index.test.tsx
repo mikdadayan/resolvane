@@ -4,6 +4,7 @@ import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { vi } from "vitest";
 import { renderWithQuery } from "@/test/utils";
+import { Role } from "@helpdesk/core";
 import UsersPage from ".";
 
 const BASE_URL = "http://localhost:3000";
@@ -11,8 +12,8 @@ const BASE_URL = "http://localhost:3000";
 vi.stubEnv("VITE_SERVER_BASE_URL", BASE_URL);
 
 const mockUsers = [
-  { id: "1", name: "Alice Admin", email: "alice@example.com", role: "admin", createdAt: "2024-01-15T00:00:00.000Z" },
-  { id: "2", name: "Bob Agent", email: "bob@example.com", role: "agent", createdAt: "2024-03-20T00:00:00.000Z" },
+  { id: "1", name: "Alice Admin", email: "alice@example.com", role: Role.admin, createdAt: "2024-01-15T00:00:00.000Z" },
+  { id: "2", name: "Bob Agent", email: "bob@example.com", role: Role.agent, createdAt: "2024-03-20T00:00:00.000Z" },
 ];
 
 const server = setupServer(

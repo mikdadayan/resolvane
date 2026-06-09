@@ -1,6 +1,6 @@
 import { Controller } from "react-hook-form";
 import type { Control, FieldErrors, UseFormRegister } from "react-hook-form";
-import type { CreateUserInput } from "@helpdesk/core";
+import { Role, type CreateUserInput } from "@helpdesk/core";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -73,8 +73,8 @@ export default function UserForm({ register, control, errors, serverError, passw
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="agent">Agent</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value={Role.agent}>Agent</SelectItem>
+                <SelectItem value={Role.admin}>Admin</SelectItem>
               </SelectContent>
             </Select>
           )}

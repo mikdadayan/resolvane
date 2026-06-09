@@ -36,6 +36,7 @@ cd client && bun dev
 - **Pages**: one file per page under `src/pages/`, one file per component under `src/components/`
 - **Data fetching**: always use **axios** for HTTP requests and **TanStack Query** (`useQuery`, `useMutation`) for server state — never use raw `fetch` or `useEffect` for data fetching
 - **Forms**: always use **react-hook-form** with **`zodResolver`** and a **zod** schema — never manage form state with `useState`. Import the schema from `@helpdesk/core` (see below), infer the type with `z.infer<typeof schema>`, and wire up with `useForm<FormValues>({ resolver: zodResolver(schema) })`. Display field errors from `formState.errors` inline beneath each input.
+- **Role enum**: always import `Role` from `@helpdesk/core` and use `Role.admin` / `Role.agent` instead of the raw strings `"admin"` / `"agent"`. Never hard-code role strings anywhere in the client — not in conditionals, default values, `SelectItem` values, mock data, or type annotations.
 
 ## Server file layout
 

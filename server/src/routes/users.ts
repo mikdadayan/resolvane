@@ -14,6 +14,7 @@ function firstIssue(error: { issues: { message: string }[] }) {
 
 router.get("/", requireAuth, requireAdmin, async (_req, res) => {
   const users = await prisma.user.findMany({
+    where: { deletedAt: null },
     select: { id: true, name: true, email: true, role: true, createdAt: true },
     orderBy: { createdAt: "desc" },
   });
@@ -30,7 +31,7 @@ router.post("/", requireAuth, requireAdmin, async (req, res) => {
 
   const { name, email, password, role } = result.data;
 
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const existing = await prisma.user.findFirst({ where: { email, deletedAt: null } });
   if (existing) {
     res.status(409).json({ error: "A user with that email already exists." });
     return;
@@ -77,13 +78,13 @@ router.patch("/:id", requireAuth, requireAdmin, async (req, res) => {
   const id = req.params["id"] as string;
 
   const existing = await prisma.user.findUnique({ where: { id } });
-  if (!existing) {
+  if (!existing || existing.deletedAt) {
     res.status(404).json({ error: "User not found." });
     return;
   }
 
   if (email !== existing.email) {
-    const taken = await prisma.user.findUnique({ where: { email } });
+    const taken = await prisma.user.findFirst({ where: { email, deletedAt: null } });
     if (taken) {
       res.status(409).json({ error: "A user with that email already exists." });
       return;
@@ -105,6 +106,29 @@ router.patch("/:id", requireAuth, requireAdmin, async (req, res) => {
   });
 
   res.json({ user });
+});
+
+router.delete("/:id", requireAuth, requireAdmin, async (req, res) => {
+  const id = req.params["id"] as string;
+
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user || user.deletedAt) {
+    res.status(404).json({ error: "User not found." });
+    return;
+  }
+  if (user.role === "admin") {
+    res.status(403).json({ error: "Admin users cannot be deleted." });
+    return;
+  }
+
+  await prisma.user.update({
+    where: { id },
+    data: { deletedAt: new Date(), updatedAt: new Date() },
+  });
+
+  await prisma.session.deleteMany({ where: { userId: id } });
+
+  res.status(204).send();
 });
 
 export default router;

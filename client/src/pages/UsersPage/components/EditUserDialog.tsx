@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { updateUserSchema, type UpdateUserInput } from "@helpdesk/core";
+import { Role, updateUserSchema, type UpdateUserInput } from "@helpdesk/core";
 import axios from "axios";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -34,7 +34,7 @@ export default function EditUserDialog({ user, onOpenChange }: Props) {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(updateUserSchema),
-    defaultValues: { name: "", email: "", password: "", role: "agent" },
+    defaultValues: { name: "", email: "", password: "", role: Role.agent },
   });
 
   useEffect(() => {

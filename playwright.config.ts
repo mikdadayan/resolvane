@@ -22,13 +22,13 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "bun --env-file .env.test --hot src/index.ts",
+      command: "/Users/mikayeldadayan/.bun/bin/bun --env-file .env.test --hot src/index.ts",
       cwd: "server",
       port: 3001,
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: "bun dev --port 5174",
+      command: "/Users/mikayeldadayan/.bun/bin/bun dev --port 5174",
       cwd: "client",
       port: 5174,
       env: { VITE_SERVER_BASE_URL: "http://localhost:3001" },

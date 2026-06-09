@@ -18,7 +18,7 @@ import path from "path";
 const SERVER_DIR = path.resolve(__dirname, "../server");
 
 function seed(script: string) {
-  execSync(`bun --env-file .env.test ${script}`, {
+  execSync(`/Users/mikayeldadayan/.bun/bin/bun --env-file .env.test ${script}`, {
     cwd: SERVER_DIR,
     stdio: "inherit",
   });

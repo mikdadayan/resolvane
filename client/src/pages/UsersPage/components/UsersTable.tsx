@@ -1,4 +1,5 @@
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
+import { Role } from "@helpdesk/core";
 import {
   Table,
   TableBody,
@@ -15,9 +16,10 @@ interface Props {
   users: User[] | undefined;
   isPending: boolean;
   onEdit: (user: User) => void;
+  onDelete: (user: User) => void;
 }
 
-export default function UsersTable({ users, isPending, onEdit }: Props) {
+export default function UsersTable({ users, isPending, onEdit, onDelete }: Props) {
   return (
     <Table>
       <TableHeader>
@@ -47,7 +49,7 @@ export default function UsersTable({ users, isPending, onEdit }: Props) {
                 <TableCell>
                   <span
                     className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                      user.role === "admin"
+                      user.role === Role.admin
                         ? "bg-primary/10 text-primary"
                         : "bg-muted text-muted-foreground"
                     }`}
@@ -59,14 +61,27 @@ export default function UsersTable({ users, isPending, onEdit }: Props) {
                   {new Date(user.createdAt).toLocaleDateString()}
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => onEdit(user)}
-                    aria-label={`Edit ${user.name}`}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
+                  <div className="inline-flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => onEdit(user)}
+                      aria-label={`Edit ${user.name}`}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    {user.role !== Role.admin && (
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => onDelete(user)}
+                        aria-label={`Delete ${user.name}`}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

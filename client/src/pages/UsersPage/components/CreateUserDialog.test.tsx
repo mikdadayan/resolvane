@@ -4,6 +4,7 @@ import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { vi } from "vitest";
 import { renderWithQuery } from "@/test/utils";
+import { Role } from "@helpdesk/core";
 import CreateUserDialog from "./CreateUserDialog";
 
 const BASE_URL = "http://localhost:3000";
@@ -14,7 +15,7 @@ const mockCreatedUser = {
   id: "99",
   name: "Jane Doe",
   email: "jane@example.com",
-  role: "agent",
+  role: Role.agent,
   createdAt: new Date().toISOString(),
 };
 
@@ -109,7 +110,7 @@ describe("CreateUserDialog", () => {
           name: "Jane Doe",
           email: "jane@example.com",
           password: "password123",
-          role: "agent",
+          role: Role.agent,
         })
       );
     });
