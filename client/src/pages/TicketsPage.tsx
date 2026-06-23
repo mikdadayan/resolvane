@@ -29,7 +29,7 @@ const CATEGORY_LABELS: Record<TicketCategory, string> = {
 };
 
 async function fetchTickets(): Promise<Ticket[]> {
-  const res = await axios.get(`${import.meta.env.VITE_SERVER_BASE_URL}/api/tickets`, {
+  const res = await axios.get<{ tickets: Ticket[] }>(`${import.meta.env.VITE_SERVER_BASE_URL}/api/tickets`, {
     withCredentials: true,
   });
   return res.data.tickets;
