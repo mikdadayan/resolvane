@@ -1,4 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
+import path from "path";
+
+// Load server/.env.test into this process so test files can read the same
+// INBOUND_WEBHOOK_SECRET / ADMIN_EMAIL / etc. values the test server uses,
+// instead of duplicating them as hardcoded fallbacks in test code.
+process.loadEnvFile(path.resolve(__dirname, "server/.env.test"));
+
+const SERVER_PORT = 3001;
+const SERVER_BASE_URL = `http://localhost:${SERVER_PORT}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -24,14 +33,14 @@ export default defineConfig({
     {
       command: "/Users/mikayeldadayan/.bun/bin/bun --env-file .env.test --hot src/index.ts",
       cwd: "server",
-      port: 3001,
+      port: SERVER_PORT,
       reuseExistingServer: !process.env.CI,
     },
     {
       command: "/Users/mikayeldadayan/.bun/bin/bun dev --port 5174",
       cwd: "client",
       port: 5174,
-      env: { VITE_SERVER_BASE_URL: "http://localhost:3001" },
+      env: { VITE_SERVER_BASE_URL: SERVER_BASE_URL },
       reuseExistingServer: !process.env.CI,
     },
   ],

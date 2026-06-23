@@ -43,17 +43,22 @@ cd client && bun dev
 ```
 server/src/
 ├── lib/
-│   ├── auth.ts          # better-auth instance
-│   ├── prisma.ts        # Prisma client singleton
-│   └── types.ts         # re-exports Prisma enums (e.g. Role)
+│   ├── auth.ts            # better-auth instance
+│   ├── prisma.ts          # Prisma client singleton
+│   ├── types.ts           # re-exports Prisma enums (e.g. Role)
+│   ├── validation.ts      # firstIssue, validateBody — shared zod request validation
+│   └── ticket-select.ts   # shared Prisma `select` shape for ticket queries
 ├── middleware/
-│   ├── require-auth.ts  # validates session, populates req.user and req.session
-│   └── require-admin.ts # checks req.user.role === "admin", returns 403 otherwise
+│   ├── require-auth.ts           # validates session, populates req.user and req.session
+│   ├── require-admin.ts          # checks req.user.role === "admin", returns 403 otherwise
+│   └── require-webhook-secret.ts # checks x-webhook-secret header for inbound webhooks
 ├── routes/
-│   └── users.ts         # GET /api/users, POST /api/users (admin-only)
+│   ├── users.ts           # GET /api/users, POST /api/users (admin-only) — session-authed
+│   ├── tickets.ts         # GET /api/tickets — session-authed
+│   └── webhooks.ts        # POST /api/webhooks/inbound-email — shared-secret authed, no session
 ├── types/
-│   └── express.d.ts     # augments Express Request with user and session types
-└── index.ts             # app entry point — mounts routes
+│   └── express.d.ts       # augments Express Request with user and session types
+└── index.ts               # app entry point — mounts routes
 ```
 
 Key server conventions:
@@ -62,8 +67,10 @@ Key server conventions:
 - `req.user` and `req.session` types come from `typeof auth.$Infer.Session` via the express augmentation in `types/express.d.ts`.
 - New users are created manually by scripting against Prisma directly (see `prisma/seed.ts` for the pattern — hash with `hashPassword` from `better-auth/crypto`).
 - Rate limiting on `/api/auth/sign-in` is active **only in production** (`NODE_ENV=production`).
-- Required env vars (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`) are validated at startup — the server throws immediately if any are missing.
-- **Request body validation**: always use **zod** (`safeParse`) to validate request bodies. Define a schema above the route handler and return the first issue message as `{ error }` with a 400 status on failure.
+- Required env vars (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `INBOUND_WEBHOOK_SECRET`) are validated at startup — the server throws immediately if any are missing.
+- **Request body validation**: always use **zod** to validate request bodies via the shared `validateBody(schema, req.body, res)` helper from `server/src/lib/validation.ts`. It runs `safeParse`, and on failure writes the first issue message as `{ error }` with a 400 status and returns `null` — on success it returns the parsed data. Call it at the top of the handler and bail out with `if (!data) return;`. Never inline `schema.safeParse(...)` + manual 400 handling, and never redefine this logic locally in a route file.
+- **Webhooks live under `/api/webhooks`, never mixed into a resource's own router**: any server-to-server endpoint authenticated by a shared secret (via `requireWebhookSecret`) instead of a user session belongs in `server/src/routes/webhooks.ts`, mounted at `/api/webhooks`. Resource routers like `tickets.ts` stay exclusively session-authed (`requireAuth`) — don't add a `requireWebhookSecret`-only route to a session-authed router just because it operates on the same resource. Share Prisma `select` shapes between the two (e.g. `ticket-select.ts`) instead of duplicating them.
+- **Route handlers are named functions, not inline callbacks**: define each handler as a `const handlerName: RequestHandler = async (req, res) => { ... }` above the router, then register all routes together at the bottom of the file (e.g. `router.get("/", requireAuth, requireAdmin, listUsers);`). Never pass an inline `async (req, res) => { ... }` directly to `router.get/post/patch/delete`.
 
 ## Client file layout
 
@@ -116,6 +123,7 @@ client/src/
 | `BETTER_AUTH_TRUSTED_ORIGINS` | server | Comma-separated allowed client origins |
 | `VITE_SERVER_BASE_URL` | client | Base URL for all API calls |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | server | Seed credentials for the admin user |
+| `INBOUND_WEBHOOK_SECRET` | server | Shared secret for the inbound email webhook (`x-webhook-secret` header) — generate with `openssl rand -hex 32` |
 
 ## Testing
 

@@ -18,17 +18,18 @@ enum Role {
 }
 
 model user {
-  id            String    @id
-  name          String
-  email         String    @unique
-  emailVerified Boolean
-  image         String?
-  createdAt     DateTime
-  updatedAt     DateTime
-  role          Role      @default(agent)
-  deletedAt     DateTime?
-  sessions      session[]
-  accounts      account[]
+  id              String    @id
+  name            String
+  email           String    @unique
+  emailVerified   Boolean
+  image           String?
+  createdAt       DateTime
+  updatedAt       DateTime
+  role            Role      @default(agent)
+  deletedAt       DateTime?
+  sessions        session[]
+  accounts        account[]
+  assignedTickets ticket[]
 
   @@map("user")
 }
@@ -75,4 +76,36 @@ model verification {
   updatedAt  DateTime?
 
   @@map("verification")
+}
+
+enum TicketStatus {
+  open
+  resolved
+  closed
+}
+
+enum TicketCategory {
+  general_question
+  technical_question
+  refund_request
+}
+
+model ticket {
+  id           String          @id @default(uuid())
+  subject      String
+  body         String
+  bodyHtml     String?
+  senderName   String
+  senderEmail  String
+  status       TicketStatus    @default(open)
+  category     TicketCategory?
+  messageId    String?         @unique
+  receivedAt   DateTime
+  assignedToId String?
+  assignedTo   user?           @relation(fields: [assignedToId], references: [id])
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  deletedAt    DateTime?
+
+  @@map("ticket")
 }

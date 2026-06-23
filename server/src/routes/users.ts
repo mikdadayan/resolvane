@@ -1,35 +1,30 @@
-import { Router } from "express";
+import { Router, type RequestHandler } from "express";
 import { hashPassword } from "better-auth/crypto";
 import { createUserSchema, updateUserSchema } from "@helpdesk/core";
 import { requireAuth } from "../middleware/require-auth";
 import { requireAdmin } from "../middleware/require-admin";
 import { prisma } from "../lib/prisma";
 import { Role } from "../lib/types";
+import { validateBody } from "../lib/validation";
 
 const router = Router();
 
-function firstIssue(error: { issues: { message: string }[] }) {
-  return error.issues[0]?.message ?? "Invalid input.";
-}
+const userSelect = { id: true, name: true, email: true, role: true, createdAt: true };
 
-router.get("/", requireAuth, requireAdmin, async (_req, res) => {
+const listUsers: RequestHandler = async (_req, res) => {
   const users = await prisma.user.findMany({
     where: { deletedAt: null },
-    select: { id: true, name: true, email: true, role: true, createdAt: true },
+    select: userSelect,
     orderBy: { createdAt: "desc" },
   });
   res.json({ users });
-});
+};
 
-router.post("/", requireAuth, requireAdmin, async (req, res) => {
-  const result = createUserSchema.safeParse(req.body);
-  if (!result.success) {
-    const error = firstIssue(result.error);
-    res.status(400).json({ error });
-    return;
-  }
+const createUser: RequestHandler = async (req, res) => {
+  const data = validateBody(createUserSchema, req.body, res);
+  if (!data) return;
 
-  const { name, email, password, role } = result.data;
+  const { name, email, password, role } = data;
 
   const existing = await prisma.user.findFirst({ where: { email, deletedAt: null } });
   if (existing) {
@@ -60,21 +55,17 @@ router.post("/", requireAuth, requireAdmin, async (req, res) => {
         },
       },
     },
-    select: { id: true, name: true, email: true, role: true, createdAt: true },
+    select: userSelect,
   });
 
   res.status(201).json({ user });
-});
+};
 
-router.patch("/:id", requireAuth, requireAdmin, async (req, res) => {
-  const result = updateUserSchema.safeParse(req.body);
-  if (!result.success) {
-    const error = firstIssue(result.error);
-    res.status(400).json({ error });
-    return;
-  }
+const updateUser: RequestHandler = async (req, res) => {
+  const data = validateBody(updateUserSchema, req.body, res);
+  if (!data) return;
 
-  const { name, email, password, role } = result.data;
+  const { name, email, password, role } = data;
   const id = req.params["id"] as string;
 
   const existing = await prisma.user.findUnique({ where: { id } });
@@ -102,13 +93,13 @@ router.patch("/:id", requireAuth, requireAdmin, async (req, res) => {
   const user = await prisma.user.update({
     where: { id },
     data: { name, email, role: role as Role, updatedAt: new Date() },
-    select: { id: true, name: true, email: true, role: true, createdAt: true },
+    select: userSelect,
   });
 
   res.json({ user });
-});
+};
 
-router.delete("/:id", requireAuth, requireAdmin, async (req, res) => {
+const deleteUser: RequestHandler = async (req, res) => {
   const id = req.params["id"] as string;
 
   const user = await prisma.user.findUnique({ where: { id } });
@@ -129,6 +120,11 @@ router.delete("/:id", requireAuth, requireAdmin, async (req, res) => {
   await prisma.session.deleteMany({ where: { userId: id } });
 
   res.status(204).send();
-});
+};
+
+router.get("/", requireAuth, requireAdmin, listUsers);
+router.post("/", requireAuth, requireAdmin, createUser);
+router.patch("/:id", requireAuth, requireAdmin, updateUser);
+router.delete("/:id", requireAuth, requireAdmin, deleteUser);
 
 export default router;
