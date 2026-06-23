@@ -1,4 +1,5 @@
 import { screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { vi } from "vitest";
@@ -33,14 +34,20 @@ const mockTickets = [
   },
 ];
 
+let capturedUrl: URL | null = null;
+
 const server = setupServer(
-  http.get(`${BASE_URL}/api/tickets`, () =>
-    HttpResponse.json({ tickets: mockTickets })
-  )
+  http.get(`${BASE_URL}/api/tickets`, ({ request }) => {
+    capturedUrl = new URL(request.url);
+    return HttpResponse.json({ tickets: mockTickets });
+  })
 );
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  capturedUrl = null;
+});
 afterAll(() => server.close());
 
 describe("TicketsPage", () => {
@@ -91,6 +98,49 @@ describe("TicketsPage", () => {
 
     expect(screen.getByText("open")).toBeInTheDocument();
     expect(screen.getByText("closed")).toBeInTheDocument();
+  });
+
+  it("defaults to sorting by receivedAt desc", async () => {
+    renderWithQuery(<TicketsPage />);
+    await waitFor(() => expect(capturedUrl).not.toBeNull());
+
+    expect(capturedUrl!.searchParams.get("sortBy")).toBe("receivedAt");
+    expect(capturedUrl!.searchParams.get("sortOrder")).toBe("desc");
+  });
+
+  it("clicking a sortable header requests that column ascending", async () => {
+    const user = userEvent.setup();
+    renderWithQuery(<TicketsPage />);
+    await waitFor(() => screen.getByText("Cannot log in"));
+
+    await user.click(screen.getByText("Subject"));
+
+    await waitFor(() => {
+      expect(capturedUrl!.searchParams.get("sortBy")).toBe("subject");
+      expect(capturedUrl!.searchParams.get("sortOrder")).toBe("asc");
+    });
+  });
+
+  it("shows the active sort chevron for the column matching the URL", async () => {
+    renderWithQuery(<TicketsPage />, { initialEntries: ["/?sortBy=subject&sortOrder=asc"] });
+    await waitFor(() => screen.getByText("Cannot log in"));
+
+    const subjectHeader = screen.getByText("Subject").closest("th")!;
+    expect(subjectHeader.querySelector("svg")).toBeInTheDocument();
+  });
+
+  it("does not make the Assigned column sortable", async () => {
+    const user = userEvent.setup();
+    renderWithQuery(<TicketsPage />);
+    await waitFor(() => screen.getByText("Cannot log in"));
+
+    const assignedHeader = screen.getByText("Assigned").closest("th")!;
+    expect(assignedHeader.querySelector("svg")).not.toBeInTheDocument();
+    expect(assignedHeader).not.toHaveClass("cursor-pointer");
+
+    await user.click(screen.getByText("Assigned"));
+
+    expect(capturedUrl!.searchParams.get("sortBy")).toBe("receivedAt");
   });
 
   it("shows an error message when the request fails", async () => {

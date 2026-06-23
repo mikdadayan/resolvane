@@ -28,3 +28,20 @@ export const inboundEmailSchema = z.object({
 });
 
 export type InboundEmailInput = z.infer<typeof inboundEmailSchema>;
+
+export const TicketSortBy = {
+  subject: "subject",
+  senderName: "senderName",
+  status: "status",
+  category: "category",
+  receivedAt: "receivedAt",
+} as const;
+
+export type TicketSortBy = (typeof TicketSortBy)[keyof typeof TicketSortBy];
+
+export const listTicketsQuerySchema = z.object({
+  sortBy: z.enum(Object.values(TicketSortBy) as [string, ...string[]]).default(TicketSortBy.receivedAt),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
+});
+
+export type ListTicketsQuery = z.infer<typeof listTicketsQuerySchema>;

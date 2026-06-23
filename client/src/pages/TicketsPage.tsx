@@ -1,6 +1,16 @@
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
-import { TicketStatus, TicketCategory } from "@helpdesk/core";
+import { useSearchParams } from "react-router-dom";
+import {
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  type ColumnDef,
+  type OnChangeFn,
+  type SortingState,
+} from "@tanstack/react-table";
+import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
+import { TicketStatus, TicketCategory, TicketSortBy } from "@helpdesk/core";
 import {
   Table,
   TableBody,
@@ -28,17 +38,108 @@ const CATEGORY_LABELS: Record<TicketCategory, string> = {
   [TicketCategory.refundRequest]: "Refund Request",
 };
 
-async function fetchTickets(): Promise<Ticket[]> {
+async function fetchTickets(sortBy: string, sortOrder: string): Promise<Ticket[]> {
   const res = await axios.get<{ tickets: Ticket[] }>(`${import.meta.env.VITE_SERVER_BASE_URL}/api/tickets`, {
+    params: { sortBy, sortOrder },
     withCredentials: true,
   });
   return res.data.tickets;
 }
 
+const columns: ColumnDef<Ticket>[] = [
+  {
+    id: TicketSortBy.subject,
+    header: "Subject",
+    accessorKey: "subject",
+    cell: ({ row }) => <span className="font-medium">{row.original.subject}</span>,
+  },
+  {
+    id: TicketSortBy.senderName,
+    header: "From",
+    accessorFn: (ticket) => `${ticket.senderName} (${ticket.senderEmail})`,
+    cell: ({ row }) => (
+      <span className="text-muted-foreground">
+        {row.original.senderName} ({row.original.senderEmail})
+      </span>
+    ),
+  },
+  {
+    id: TicketSortBy.status,
+    header: "Status",
+    accessorKey: "status",
+    cell: ({ row }) => (
+      <span
+        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+          row.original.status === TicketStatus.open
+            ? "bg-primary/10 text-primary"
+            : "bg-muted text-muted-foreground"
+        }`}
+      >
+        {row.original.status}
+      </span>
+    ),
+  },
+  {
+    id: TicketSortBy.category,
+    header: "Category",
+    accessorKey: "category",
+    cell: ({ row }) => (
+      <span className="text-muted-foreground">
+        {row.original.category ? CATEGORY_LABELS[row.original.category] : "Uncategorized"}
+      </span>
+    ),
+  },
+  {
+    id: "assignedTo",
+    header: "Assigned",
+    enableSorting: false,
+    cell: ({ row }) => (
+      <span className="text-muted-foreground">{row.original.assignedTo?.name ?? "Unassigned"}</span>
+    ),
+  },
+  {
+    id: TicketSortBy.receivedAt,
+    header: "Received",
+    accessorKey: "receivedAt",
+    cell: ({ row }) => (
+      <span className="text-muted-foreground">
+        {new Date(row.original.receivedAt).toLocaleDateString()}
+      </span>
+    ),
+  },
+];
+
 export default function TicketsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sortBy = searchParams.get("sortBy") ?? TicketSortBy.receivedAt;
+  const sortOrder = (searchParams.get("sortOrder") ?? "desc") as "asc" | "desc";
+  const sorting: SortingState = [{ id: sortBy, desc: sortOrder === "desc" }];
+
   const { data: tickets, isPending, error } = useQuery({
-    queryKey: ["tickets"],
-    queryFn: fetchTickets,
+    queryKey: ["tickets", sortBy, sortOrder],
+    queryFn: () => fetchTickets(sortBy, sortOrder),
+  });
+
+  const handleSortingChange: OnChangeFn<SortingState> = (updater) => {
+    const next = typeof updater === "function" ? updater(sorting) : updater;
+    const nextSort = next[0];
+    if (!nextSort) return;
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev);
+      params.set("sortBy", nextSort.id);
+      params.set("sortOrder", nextSort.desc ? "desc" : "asc");
+      return params;
+    });
+  };
+
+  const table = useReactTable({
+    data: tickets ?? [],
+    columns,
+    state: { sorting },
+    onSortingChange: handleSortingChange,
+    manualSorting: true,
+    enableSortingRemoval: false,
+    getCoreRowModel: getCoreRowModel(),
   });
 
   return (
@@ -49,14 +150,29 @@ export default function TicketsPage() {
 
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>Subject</TableHead>
-            <TableHead>From</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead>Assigned</TableHead>
-            <TableHead>Received</TableHead>
-          </TableRow>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => (
+                <TableHead
+                  key={header.id}
+                  className={header.column.getCanSort() ? "cursor-pointer select-none" : undefined}
+                  onClick={header.column.getToggleSortingHandler()}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                    {header.column.getCanSort() &&
+                      (header.column.getIsSorted() === "asc" ? (
+                        <ChevronUp className="size-3.5" />
+                      ) : header.column.getIsSorted() === "desc" ? (
+                        <ChevronDown className="size-3.5" />
+                      ) : (
+                        <ChevronsUpDown className="size-3.5 text-muted-foreground/50" />
+                      ))}
+                  </span>
+                </TableHead>
+              ))}
+            </TableRow>
+          ))}
         </TableHeader>
         <TableBody>
           {isPending
@@ -70,32 +186,13 @@ export default function TicketsPage() {
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                 </TableRow>
               ))
-            : tickets?.map((ticket) => (
-                <TableRow key={ticket.id}>
-                  <TableCell className="font-medium">{ticket.subject}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {ticket.senderName} ({ticket.senderEmail})
-                  </TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                        ticket.status === TicketStatus.open
-                          ? "bg-primary/10 text-primary"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {ticket.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {ticket.category ? CATEGORY_LABELS[ticket.category] : "Uncategorized"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {ticket.assignedTo?.name ?? "Unassigned"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {new Date(ticket.receivedAt).toLocaleDateString()}
-                  </TableCell>
+            : table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
                 </TableRow>
               ))}
         </TableBody>
