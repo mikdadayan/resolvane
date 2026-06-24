@@ -6,6 +6,7 @@ import {
   type OnChangeFn,
   type SortingState,
 } from "@tanstack/react-table";
+import { Link } from "react-router-dom";
 import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import { TicketStatus, TicketSortBy } from "@helpdesk/core";
 import {
@@ -25,7 +26,11 @@ const columns: ColumnDef<Ticket>[] = [
     id: TicketSortBy.subject,
     header: "Subject",
     accessorKey: "subject",
-    cell: ({ row }) => <span className="font-medium">{row.original.subject}</span>,
+    cell: ({ row }) => (
+      <Link to={`/tickets/${row.original.id}`} className="font-medium">
+        {row.original.subject}
+      </Link>
+    ),
   },
   {
     id: TicketSortBy.senderName,

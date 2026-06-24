@@ -17,12 +17,12 @@ export default function Navbar() {
       <div className="flex items-center gap-6">
         <Link to="/" className="text-lg font-semibold text-foreground hover:opacity-80 transition-opacity">Helpdesk</Link>
         {session && (
-          <Link to="/tickets" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <Link to="/tickets" className="text-sm text-muted-foreground transition-colors">
             Tickets
           </Link>
         )}
         {session?.user.role === Role.admin && (
-          <Link to="/users" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <Link to="/users" className="text-sm text-muted-foreground transition-colors">
             Users
           </Link>
         )}

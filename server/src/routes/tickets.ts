@@ -40,6 +40,21 @@ const listTickets: RequestHandler = async (req, res) => {
   res.json({ tickets, total });
 };
 
+const getTicket: RequestHandler<{ id: string }> = async (req, res) => {
+  const ticket = await prisma.ticket.findFirst({
+    where: { id: req.params.id, deletedAt: null },
+    select: ticketSelect,
+  });
+
+  if (!ticket) {
+    res.status(404).json({ error: "Ticket not found" });
+    return;
+  }
+
+  res.json(ticket);
+};
+
 router.get("/", requireAuth, listTickets);
+router.get("/:id", requireAuth, getTicket);
 
 export default router;

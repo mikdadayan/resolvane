@@ -9,5 +9,6 @@ export const ticketSelect = {
   category: true,
   receivedAt: true,
   createdAt: true,
+  updatedAt: true,
   assignedTo: { select: { id: true, name: true } },
 } as const;

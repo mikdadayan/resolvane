@@ -127,6 +127,9 @@
   html {
     @apply font-sans;
   }
+  a {
+    @apply underline-offset-4 hover:text-foreground hover:underline;
+  }
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus {
