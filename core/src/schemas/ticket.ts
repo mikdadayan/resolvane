@@ -57,3 +57,14 @@ export const assignTicketSchema = z.object({
 });
 
 export type AssignTicketInput = z.infer<typeof assignTicketSchema>;
+
+export const updateTicketSchema = z
+  .object({
+    status: z.enum(Object.values(TicketStatus) as [string, ...string[]]).optional(),
+    category: z.enum(Object.values(TicketCategory) as [string, ...string[]]).optional(),
+  })
+  .refine((data) => data.status !== undefined || data.category !== undefined, {
+    message: "Provide a status or category to update",
+  });
+
+export type UpdateTicketInput = z.infer<typeof updateTicketSchema>;

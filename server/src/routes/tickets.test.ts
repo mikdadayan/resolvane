@@ -13,7 +13,7 @@ mock.module("../lib/prisma", () => ({
   },
 }));
 
-const { assignTicket } = await import("./tickets");
+const { assignTicket, updateTicket } = await import("./tickets");
 
 function makeRes() {
   const res = {} as Response;
@@ -100,6 +100,62 @@ test("assignTicket unassigns the ticket without looking up an assignee", async (
   expect(ticketUpdate).toHaveBeenCalledWith({
     where: { id: "ticket-1" },
     data: { assignedToId: null },
+    select: ticketSelect,
+  });
+  expect(res.json).toHaveBeenCalledWith(updatedTicket);
+});
+
+test("updateTicket returns 400 when neither status nor category is provided", async () => {
+  const res = makeRes();
+
+  await updateTicket(makeReq("ticket-1", {}), res, () => {});
+
+  expect(res.status).toHaveBeenCalledWith(400);
+  expect(ticketFindFirst).not.toHaveBeenCalled();
+});
+
+test("updateTicket returns 404 when the ticket does not exist", async () => {
+  ticketFindFirst.mockResolvedValue(null);
+  const res = makeRes();
+
+  await updateTicket(makeReq("missing-ticket", { status: "resolved" }), res, () => {});
+
+  expect(res.status).toHaveBeenCalledWith(404);
+  expect(res.json).toHaveBeenCalledWith({ error: "Ticket not found" });
+  expect(ticketUpdate).not.toHaveBeenCalled();
+});
+
+test("updateTicket updates only the status when category is omitted", async () => {
+  ticketFindFirst.mockResolvedValue({ id: "ticket-1" });
+  const updatedTicket = { id: "ticket-1", status: "resolved" };
+  ticketUpdate.mockResolvedValue(updatedTicket);
+  const res = makeRes();
+
+  await updateTicket(makeReq("ticket-1", { status: "resolved" }), res, () => {});
+
+  expect(ticketUpdate).toHaveBeenCalledWith({
+    where: { id: "ticket-1" },
+    data: { status: "resolved" },
+    select: ticketSelect,
+  });
+  expect(res.json).toHaveBeenCalledWith(updatedTicket);
+});
+
+test("updateTicket updates both status and category when both are provided", async () => {
+  ticketFindFirst.mockResolvedValue({ id: "ticket-1" });
+  const updatedTicket = { id: "ticket-1", status: "closed", category: "refund_request" };
+  ticketUpdate.mockResolvedValue(updatedTicket);
+  const res = makeRes();
+
+  await updateTicket(
+    makeReq("ticket-1", { status: "closed", category: "refund_request" }),
+    res,
+    () => {}
+  );
+
+  expect(ticketUpdate).toHaveBeenCalledWith({
+    where: { id: "ticket-1" },
+    data: { status: "closed", category: "refund_request" },
     select: ticketSelect,
   });
   expect(res.json).toHaveBeenCalledWith(updatedTicket);

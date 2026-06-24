@@ -1,5 +1,10 @@
 import { Router, type RequestHandler } from "express";
-import { assignTicketSchema, listTicketsQuerySchema, TICKETS_PAGE_SIZE } from "@helpdesk/core";
+import {
+  assignTicketSchema,
+  listTicketsQuerySchema,
+  updateTicketSchema,
+  TICKETS_PAGE_SIZE,
+} from "@helpdesk/core";
 import { requireAuth } from "../middleware/require-auth";
 import { prisma } from "../lib/prisma";
 import { ticketSelect } from "../lib/ticket-select";
@@ -83,8 +88,31 @@ export const assignTicket: RequestHandler<{ id: string }> = async (req, res) => 
   res.json(updated);
 };
 
+export const updateTicket: RequestHandler<{ id: string }> = async (req, res) => {
+  const data = validateBody(updateTicketSchema, req.body, res);
+  if (!data) return;
+
+  const ticket = await prisma.ticket.findFirst({ where: { id: req.params.id, deletedAt: null } });
+  if (!ticket) {
+    res.status(404).json({ error: "Ticket not found" });
+    return;
+  }
+
+  const updated = await prisma.ticket.update({
+    where: { id: req.params.id },
+    data: {
+      ...(data.status && { status: data.status as TicketStatus }),
+      ...(data.category && { category: data.category as TicketCategory }),
+    },
+    select: ticketSelect,
+  });
+
+  res.json(updated);
+};
+
 router.get("/", requireAuth, listTickets);
 router.get("/:id", requireAuth, getTicket);
+router.patch("/:id", requireAuth, updateTicket);
 router.patch("/:id/assign", requireAuth, assignTicket);
 
 export default router;
