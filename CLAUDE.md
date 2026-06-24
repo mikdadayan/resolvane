@@ -89,8 +89,12 @@ client/src/
 │   ├── SimplePage.tsx           # single-file form: no private sub-components
 │   └── FooPage/                 # folder form: page has private sub-components
 │       ├── index.tsx            # page component — imported as "@/pages/FooPage"
+│       ├── types.ts             # shared shape(s) used by the page and its private components (e.g. `Foo`)
+│       ├── constants.ts         # shared lookup maps/labels used by the page and its private components
 │       └── components/          # components used only by this page
-│           └── ...
+│           ├── Bar.tsx          # single-file form: no further private sub-components
+│           └── Baz/             # folder form: this sub-component has enough of its own logic to warrant one
+│               └── index.tsx    # imported as "./components/Baz"
 ├── index.css
 └── main.tsx
 ```
@@ -99,6 +103,9 @@ client/src/
 - **`pages/FooPage/components/`** — any component that only makes sense within one specific page. Never import these from another page.
 - **`src/components/`** — components reused across two or more pages or features. If a component is not yet shared, keep it in the page folder until it is.
 - **Page file vs. folder:** use a single `FooPage.tsx` file when the page has no private sub-components. As soon as private components are added, convert to the folder form (`FooPage/index.tsx` + `FooPage/components/`). The import path at the call site never changes.
+- **Sub-component file vs. folder:** the same single-file-vs-folder rule applies one level down. A private sub-component starts as `components/Bar.tsx`; convert it to `components/Bar/index.tsx` only once it grows enough internal complexity (e.g. its own `useReactTable`/state wiring) to read better as its own small module — not by default.
+- **Split page-level concerns from presentational sub-components**: the page's `index.tsx` owns URL/query state, data fetching, and handlers; it passes plain data + callback props down. Sub-components (e.g. a table or a filter bar) stay presentational/self-contained and don't reach into router or query hooks directly unless the state is genuinely local to them (e.g. a debounced search input's own keystroke state) — see `TicketsPage/index.tsx` + `TicketsPage/components/TicketsTable` + `TicketsPage/components/TicketsFilters` for the reference shape.
+- **`types.ts`/`constants.ts` at the page-folder root**: when a type or a lookup map (e.g. status/category label maps) is needed by both the page and more than one of its private sub-components, lift it to `FooPage/types.ts` / `FooPage/constants.ts` instead of duplicating it or importing one sub-component from another.
 
 ## Authentication
 

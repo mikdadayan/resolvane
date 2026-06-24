@@ -5,7 +5,7 @@ import { setupServer } from "msw/node";
 import { vi } from "vitest";
 import { renderWithQuery } from "@/test/utils";
 import { TicketStatus, TicketCategory } from "@helpdesk/core";
-import TicketsPage from "./TicketsPage";
+import TicketsPage from ".";
 
 const BASE_URL = "http://localhost:3000";
 
@@ -141,6 +141,55 @@ describe("TicketsPage", () => {
     await user.click(screen.getByText("Assigned"));
 
     expect(capturedUrl!.searchParams.get("sortBy")).toBe("receivedAt");
+  });
+
+  it("requests with the typed search term after debouncing", async () => {
+    const user = userEvent.setup();
+    renderWithQuery(<TicketsPage />);
+    await waitFor(() => screen.getByText("Cannot log in"));
+
+    await user.type(screen.getByLabelText("Search tickets"), "refund");
+
+    await waitFor(
+      () => expect(capturedUrl!.searchParams.get("search")).toBe("refund"),
+      { timeout: 1000 }
+    );
+  });
+
+  it("filters by the selected status", async () => {
+    const user = userEvent.setup();
+    renderWithQuery(<TicketsPage />);
+    await waitFor(() => screen.getByText("Cannot log in"));
+
+    await user.click(screen.getByLabelText("Filter by status"));
+    await user.click(await screen.findByRole("option", { name: "Closed" }));
+
+    await waitFor(() => expect(capturedUrl!.searchParams.get("status")).toBe("closed"));
+  });
+
+  it("filters by the selected category", async () => {
+    const user = userEvent.setup();
+    renderWithQuery(<TicketsPage />);
+    await waitFor(() => screen.getByText("Cannot log in"));
+
+    await user.click(screen.getByLabelText("Filter by category"));
+    await user.click(await screen.findByRole("option", { name: "Refund Request" }));
+
+    await waitFor(() =>
+      expect(capturedUrl!.searchParams.get("category")).toBe("refund_request")
+    );
+  });
+
+  it("pre-populates filters from the URL on initial load", async () => {
+    renderWithQuery(<TicketsPage />, {
+      initialEntries: ["/?search=refund&status=closed&category=refund_request"],
+    });
+    await waitFor(() => screen.getByText("Cannot log in"));
+
+    expect(screen.getByLabelText("Search tickets")).toHaveValue("refund");
+    expect(capturedUrl!.searchParams.get("search")).toBe("refund");
+    expect(capturedUrl!.searchParams.get("status")).toBe("closed");
+    expect(capturedUrl!.searchParams.get("category")).toBe("refund_request");
   });
 
   it("shows an error message when the request fails", async () => {
