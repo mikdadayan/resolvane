@@ -39,7 +39,7 @@ let capturedUrl: URL | null = null;
 const server = setupServer(
   http.get(`${BASE_URL}/api/tickets`, ({ request }) => {
     capturedUrl = new URL(request.url);
-    return HttpResponse.json({ tickets: mockTickets });
+    return HttpResponse.json({ tickets: mockTickets, total: mockTickets.length });
   })
 );
 
@@ -190,6 +190,75 @@ describe("TicketsPage", () => {
     expect(capturedUrl!.searchParams.get("search")).toBe("refund");
     expect(capturedUrl!.searchParams.get("status")).toBe("closed");
     expect(capturedUrl!.searchParams.get("category")).toBe("refund_request");
+  });
+
+  it("shows page 1 of 1 and disables all pagination buttons when there's only one page", async () => {
+    renderWithQuery(<TicketsPage />);
+    await waitFor(() => screen.getByText("Cannot log in"));
+
+    expect(screen.getByText("Page 1 of 1")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "First page" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Previous page" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next page" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Last page" })).toBeDisabled();
+  });
+
+  it("clicking Next requests the next page", async () => {
+    server.use(
+      http.get(`${BASE_URL}/api/tickets`, ({ request }) => {
+        capturedUrl = new URL(request.url);
+        return HttpResponse.json({ tickets: mockTickets, total: 25 });
+      })
+    );
+
+    const user = userEvent.setup();
+    renderWithQuery(<TicketsPage />);
+    await waitFor(() => screen.getByText("Cannot log in"));
+
+    expect(screen.getByText("Page 1 of 3")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Next page" }));
+
+    await waitFor(() => expect(capturedUrl!.searchParams.get("page")).toBe("2"));
+    expect(screen.getByText("Page 2 of 3")).toBeInTheDocument();
+  });
+
+  it("clicking Last page jumps to the final page", async () => {
+    server.use(
+      http.get(`${BASE_URL}/api/tickets`, ({ request }) => {
+        capturedUrl = new URL(request.url);
+        return HttpResponse.json({ tickets: mockTickets, total: 25 });
+      })
+    );
+
+    const user = userEvent.setup();
+    renderWithQuery(<TicketsPage />);
+    await waitFor(() => screen.getByText("Cannot log in"));
+
+    await user.click(screen.getByRole("button", { name: "Last page" }));
+
+    await waitFor(() => expect(capturedUrl!.searchParams.get("page")).toBe("3"));
+    expect(screen.getByText("Page 3 of 3")).toBeInTheDocument();
+  });
+
+  it("resets to page 1 when a filter changes", async () => {
+    server.use(
+      http.get(`${BASE_URL}/api/tickets`, ({ request }) => {
+        capturedUrl = new URL(request.url);
+        return HttpResponse.json({ tickets: mockTickets, total: 25 });
+      })
+    );
+
+    const user = userEvent.setup();
+    renderWithQuery(<TicketsPage />, { initialEntries: ["/?page=2"] });
+    await waitFor(() => screen.getByText("Cannot log in"));
+    expect(screen.getByText("Page 2 of 3")).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText("Filter by status"));
+    await user.click(await screen.findByRole("option", { name: "Closed" }));
+
+    await waitFor(() => expect(capturedUrl!.searchParams.get("page")).toBe("1"));
+    expect(screen.getByText("Page 1 of 3")).toBeInTheDocument();
   });
 
   it("shows an error message when the request fails", async () => {

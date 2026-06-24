@@ -39,12 +39,15 @@ export const TicketSortBy = {
 
 export type TicketSortBy = (typeof TicketSortBy)[keyof typeof TicketSortBy];
 
+export const TICKETS_PAGE_SIZE = 10;
+
 export const listTicketsQuerySchema = z.object({
   sortBy: z.enum(Object.values(TicketSortBy) as [string, ...string[]]).default(TicketSortBy.receivedAt),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
   search: z.string().trim().min(1).optional(),
   status: z.enum(Object.values(TicketStatus) as [string, ...string[]]).optional(),
   category: z.enum(Object.values(TicketCategory) as [string, ...string[]]).optional(),
+  page: z.coerce.number().int().min(1).default(1),
 });
 
 export type ListTicketsQuery = z.infer<typeof listTicketsQuerySchema>;
