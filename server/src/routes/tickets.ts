@@ -1,9 +1,9 @@
 import { Router, type RequestHandler } from "express";
-import { listTicketsQuerySchema, TICKETS_PAGE_SIZE } from "@helpdesk/core";
+import { assignTicketSchema, listTicketsQuerySchema, TICKETS_PAGE_SIZE } from "@helpdesk/core";
 import { requireAuth } from "../middleware/require-auth";
 import { prisma } from "../lib/prisma";
 import { ticketSelect } from "../lib/ticket-select";
-import { validateQuery } from "../lib/validation";
+import { validateBody, validateQuery } from "../lib/validation";
 import type { TicketStatus, TicketCategory } from "../generated/prisma/enums";
 import type { Prisma } from "../generated/prisma/client";
 
@@ -54,7 +54,37 @@ const getTicket: RequestHandler<{ id: string }> = async (req, res) => {
   res.json(ticket);
 };
 
+export const assignTicket: RequestHandler<{ id: string }> = async (req, res) => {
+  const data = validateBody(assignTicketSchema, req.body, res);
+  if (!data) return;
+
+  const ticket = await prisma.ticket.findFirst({ where: { id: req.params.id, deletedAt: null } });
+  if (!ticket) {
+    res.status(404).json({ error: "Ticket not found" });
+    return;
+  }
+
+  if (data.assignedToId) {
+    const assignee = await prisma.user.findFirst({
+      where: { id: data.assignedToId, deletedAt: null },
+    });
+    if (!assignee) {
+      res.status(400).json({ error: "Assignee not found" });
+      return;
+    }
+  }
+
+  const updated = await prisma.ticket.update({
+    where: { id: req.params.id },
+    data: { assignedToId: data.assignedToId },
+    select: ticketSelect,
+  });
+
+  res.json(updated);
+};
+
 router.get("/", requireAuth, listTickets);
 router.get("/:id", requireAuth, getTicket);
+router.patch("/:id/assign", requireAuth, assignTicket);
 
 export default router;

@@ -122,7 +122,7 @@ const deleteUser: RequestHandler = async (req, res) => {
   res.status(204).send();
 };
 
-router.get("/", requireAuth, requireAdmin, listUsers);
+router.get("/", requireAuth, listUsers);
 router.post("/", requireAuth, requireAdmin, createUser);
 router.patch("/:id", requireAuth, requireAdmin, updateUser);
 router.delete("/:id", requireAuth, requireAdmin, deleteUser);

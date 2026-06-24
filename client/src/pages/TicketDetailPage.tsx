@@ -1,9 +1,16 @@
 import axios from "axios";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CATEGORY_LABELS } from "@/pages/TicketsPage/constants";
 import type { Ticket } from "@/pages/TicketsPage/types";
 
@@ -11,6 +18,10 @@ type TicketDetail = Ticket & {
   body: string;
   updatedAt: string;
 };
+
+type AssignableUser = { id: string; name: string };
+
+const UNASSIGNED = "unassigned";
 
 async function fetchTicket(id: string): Promise<TicketDetail> {
   const res = await axios.get<TicketDetail>(
@@ -20,14 +31,48 @@ async function fetchTicket(id: string): Promise<TicketDetail> {
   return res.data;
 }
 
+async function fetchUsers(): Promise<AssignableUser[]> {
+  const res = await axios.get(`${import.meta.env.VITE_SERVER_BASE_URL}/api/users`, {
+    withCredentials: true,
+  });
+  return res.data.users;
+}
+
+async function assignTicket(id: string, assignedToId: string | null): Promise<TicketDetail> {
+  const res = await axios.patch<TicketDetail>(
+    `${import.meta.env.VITE_SERVER_BASE_URL}/api/tickets/${id}/assign`,
+    { assignedToId },
+    { withCredentials: true }
+  );
+  return res.data;
+}
+
 export default function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
 
   const { data: ticket, isPending, error } = useQuery({
     queryKey: ["ticket", id],
     queryFn: () => fetchTicket(id!),
     enabled: !!id,
   });
+
+  const { data: users } = useQuery({
+    queryKey: ["users"],
+    queryFn: fetchUsers,
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: (assignedToId: string | null) => assignTicket(id!, assignedToId),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["ticket", id], updated);
+      queryClient.invalidateQueries({ queryKey: ["tickets"] });
+    },
+  });
+
+  const handleAssigneeChange = (value: string) => {
+    assignMutation.mutate(value === UNASSIGNED ? null : value);
+  };
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-8">
@@ -63,9 +108,25 @@ export default function TicketDetailPage() {
               <span className="text-muted-foreground">From: </span>
               {ticket.senderName} ({ticket.senderEmail})
             </p>
-            <p>
+            <p className="flex items-center gap-2">
               <span className="text-muted-foreground">Assigned to: </span>
-              {ticket.assignedTo?.name ?? "Unassigned"}
+              <Select
+                value={ticket.assignedTo?.id ?? UNASSIGNED}
+                onValueChange={handleAssigneeChange}
+                disabled={assignMutation.isPending}
+              >
+                <SelectTrigger aria-label="Assign ticket" className="w-48 h-7">
+                  <SelectValue>{() => ticket.assignedTo?.name ?? "Unassigned"}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={UNASSIGNED}>Unassigned</SelectItem>
+                  {users?.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </p>
             <p>
               <span className="text-muted-foreground">Created: </span>
