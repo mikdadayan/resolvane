@@ -1,19 +1,25 @@
 import { test, expect, mock, beforeEach } from "bun:test";
 import type { Request, Response } from "express";
+import { replySelect } from "../lib/reply-select";
 import { ticketSelect } from "../lib/ticket-select";
+
+const TICKET_ID = "52671c5a-2b9d-4308-886d-9a5da4c68b7d";
+const OTHER_TICKET_ID = "4f871701-a882-40a1-836e-6a8b13f319d1";
 
 const ticketFindFirst = mock();
 const ticketUpdate = mock();
 const userFindFirst = mock();
+const ticketReplyCreate = mock();
 
 mock.module("../lib/prisma", () => ({
   prisma: {
     ticket: { findFirst: ticketFindFirst, update: ticketUpdate },
     user: { findFirst: userFindFirst },
+    ticketReply: { create: ticketReplyCreate },
   },
 }));
 
-const { assignTicket, updateTicket } = await import("./tickets");
+const { assignTicket, updateTicket, createReply } = await import("./tickets");
 
 function makeRes() {
   const res = {} as Response;
@@ -22,20 +28,35 @@ function makeRes() {
   return res;
 }
 
-function makeReq(id: string, body: unknown): Request<{ id: string }> {
-  return { params: { id }, body } as unknown as Request<{ id: string }>;
+function makeReq(
+  id: string,
+  body: unknown,
+  user: { id: string } = { id: "author-1" }
+): Request<{ id: string }> {
+  return { params: { id }, body, user } as unknown as Request<{ id: string }>;
 }
 
 beforeEach(() => {
   ticketFindFirst.mockReset();
   ticketUpdate.mockReset();
   userFindFirst.mockReset();
+  ticketReplyCreate.mockReset();
+});
+
+test("assignTicket returns 404 when the id is not a valid uuid", async () => {
+  const res = makeRes();
+
+  await assignTicket(makeReq("not-a-uuid", { assignedToId: "user-1" }), res, () => {});
+
+  expect(res.status).toHaveBeenCalledWith(404);
+  expect(res.json).toHaveBeenCalledWith({ error: "Ticket not found" });
+  expect(ticketFindFirst).not.toHaveBeenCalled();
 });
 
 test("assignTicket returns 400 when assignedToId is missing from the body", async () => {
   const res = makeRes();
 
-  await assignTicket(makeReq("ticket-1", {}), res, () => {});
+  await assignTicket(makeReq(TICKET_ID, {}), res, () => {});
 
   expect(res.status).toHaveBeenCalledWith(400);
   expect(ticketFindFirst).not.toHaveBeenCalled();
@@ -45,10 +66,10 @@ test("assignTicket returns 404 when the ticket does not exist", async () => {
   ticketFindFirst.mockResolvedValue(null);
   const res = makeRes();
 
-  await assignTicket(makeReq("missing-ticket", { assignedToId: "user-1" }), res, () => {});
+  await assignTicket(makeReq(OTHER_TICKET_ID, { assignedToId: "user-1" }), res, () => {});
 
   expect(ticketFindFirst).toHaveBeenCalledWith({
-    where: { id: "missing-ticket", deletedAt: null },
+    where: { id: OTHER_TICKET_ID, deletedAt: null },
   });
   expect(res.status).toHaveBeenCalledWith(404);
   expect(res.json).toHaveBeenCalledWith({ error: "Ticket not found" });
@@ -57,11 +78,11 @@ test("assignTicket returns 404 when the ticket does not exist", async () => {
 });
 
 test("assignTicket returns 400 when the assignee does not exist", async () => {
-  ticketFindFirst.mockResolvedValue({ id: "ticket-1" });
+  ticketFindFirst.mockResolvedValue({ id: TICKET_ID });
   userFindFirst.mockResolvedValue(null);
   const res = makeRes();
 
-  await assignTicket(makeReq("ticket-1", { assignedToId: "missing-user" }), res, () => {});
+  await assignTicket(makeReq(TICKET_ID, { assignedToId: "missing-user" }), res, () => {});
 
   expect(userFindFirst).toHaveBeenCalledWith({
     where: { id: "missing-user", deletedAt: null },
@@ -72,16 +93,16 @@ test("assignTicket returns 400 when the assignee does not exist", async () => {
 });
 
 test("assignTicket assigns the ticket to an existing user", async () => {
-  ticketFindFirst.mockResolvedValue({ id: "ticket-1" });
+  ticketFindFirst.mockResolvedValue({ id: TICKET_ID });
   userFindFirst.mockResolvedValue({ id: "user-1" });
-  const updatedTicket = { id: "ticket-1", assignedTo: { id: "user-1", name: "Agent Smith" } };
+  const updatedTicket = { id: TICKET_ID, assignedTo: { id: "user-1", name: "Agent Smith" } };
   ticketUpdate.mockResolvedValue(updatedTicket);
   const res = makeRes();
 
-  await assignTicket(makeReq("ticket-1", { assignedToId: "user-1" }), res, () => {});
+  await assignTicket(makeReq(TICKET_ID, { assignedToId: "user-1" }), res, () => {});
 
   expect(ticketUpdate).toHaveBeenCalledWith({
-    where: { id: "ticket-1" },
+    where: { id: TICKET_ID },
     data: { assignedToId: "user-1" },
     select: ticketSelect,
   });
@@ -89,26 +110,35 @@ test("assignTicket assigns the ticket to an existing user", async () => {
 });
 
 test("assignTicket unassigns the ticket without looking up an assignee", async () => {
-  ticketFindFirst.mockResolvedValue({ id: "ticket-1" });
-  const updatedTicket = { id: "ticket-1", assignedTo: null };
+  ticketFindFirst.mockResolvedValue({ id: TICKET_ID });
+  const updatedTicket = { id: TICKET_ID, assignedTo: null };
   ticketUpdate.mockResolvedValue(updatedTicket);
   const res = makeRes();
 
-  await assignTicket(makeReq("ticket-1", { assignedToId: null }), res, () => {});
+  await assignTicket(makeReq(TICKET_ID, { assignedToId: null }), res, () => {});
 
   expect(userFindFirst).not.toHaveBeenCalled();
   expect(ticketUpdate).toHaveBeenCalledWith({
-    where: { id: "ticket-1" },
+    where: { id: TICKET_ID },
     data: { assignedToId: null },
     select: ticketSelect,
   });
   expect(res.json).toHaveBeenCalledWith(updatedTicket);
 });
 
+test("updateTicket returns 404 when the id is not a valid uuid", async () => {
+  const res = makeRes();
+
+  await updateTicket(makeReq("not-a-uuid", { status: "resolved" }), res, () => {});
+
+  expect(res.status).toHaveBeenCalledWith(404);
+  expect(ticketFindFirst).not.toHaveBeenCalled();
+});
+
 test("updateTicket returns 400 when neither status nor category is provided", async () => {
   const res = makeRes();
 
-  await updateTicket(makeReq("ticket-1", {}), res, () => {});
+  await updateTicket(makeReq(TICKET_ID, {}), res, () => {});
 
   expect(res.status).toHaveBeenCalledWith(400);
   expect(ticketFindFirst).not.toHaveBeenCalled();
@@ -118,7 +148,7 @@ test("updateTicket returns 404 when the ticket does not exist", async () => {
   ticketFindFirst.mockResolvedValue(null);
   const res = makeRes();
 
-  await updateTicket(makeReq("missing-ticket", { status: "resolved" }), res, () => {});
+  await updateTicket(makeReq(OTHER_TICKET_ID, { status: "resolved" }), res, () => {});
 
   expect(res.status).toHaveBeenCalledWith(404);
   expect(res.json).toHaveBeenCalledWith({ error: "Ticket not found" });
@@ -126,15 +156,15 @@ test("updateTicket returns 404 when the ticket does not exist", async () => {
 });
 
 test("updateTicket updates only the status when category is omitted", async () => {
-  ticketFindFirst.mockResolvedValue({ id: "ticket-1" });
-  const updatedTicket = { id: "ticket-1", status: "resolved" };
+  ticketFindFirst.mockResolvedValue({ id: TICKET_ID });
+  const updatedTicket = { id: TICKET_ID, status: "resolved" };
   ticketUpdate.mockResolvedValue(updatedTicket);
   const res = makeRes();
 
-  await updateTicket(makeReq("ticket-1", { status: "resolved" }), res, () => {});
+  await updateTicket(makeReq(TICKET_ID, { status: "resolved" }), res, () => {});
 
   expect(ticketUpdate).toHaveBeenCalledWith({
-    where: { id: "ticket-1" },
+    where: { id: TICKET_ID },
     data: { status: "resolved" },
     select: ticketSelect,
   });
@@ -142,21 +172,82 @@ test("updateTicket updates only the status when category is omitted", async () =
 });
 
 test("updateTicket updates both status and category when both are provided", async () => {
-  ticketFindFirst.mockResolvedValue({ id: "ticket-1" });
-  const updatedTicket = { id: "ticket-1", status: "closed", category: "refund_request" };
+  ticketFindFirst.mockResolvedValue({ id: TICKET_ID });
+  const updatedTicket = { id: TICKET_ID, status: "closed", category: "refund_request" };
   ticketUpdate.mockResolvedValue(updatedTicket);
   const res = makeRes();
 
   await updateTicket(
-    makeReq("ticket-1", { status: "closed", category: "refund_request" }),
+    makeReq(TICKET_ID, { status: "closed", category: "refund_request" }),
     res,
     () => {}
   );
 
   expect(ticketUpdate).toHaveBeenCalledWith({
-    where: { id: "ticket-1" },
+    where: { id: TICKET_ID },
     data: { status: "closed", category: "refund_request" },
     select: ticketSelect,
   });
   expect(res.json).toHaveBeenCalledWith(updatedTicket);
+});
+
+test("createReply returns 404 when the id is not a valid uuid", async () => {
+  const res = makeRes();
+
+  await createReply(makeReq("not-a-uuid", { body: "Thanks for reaching out" }), res, () => {});
+
+  expect(res.status).toHaveBeenCalledWith(404);
+  expect(ticketFindFirst).not.toHaveBeenCalled();
+  expect(ticketReplyCreate).not.toHaveBeenCalled();
+});
+
+test("createReply returns 400 when the body is empty", async () => {
+  const res = makeRes();
+
+  await createReply(makeReq(TICKET_ID, { body: "" }), res, () => {});
+
+  expect(res.status).toHaveBeenCalledWith(400);
+  expect(ticketFindFirst).not.toHaveBeenCalled();
+  expect(ticketReplyCreate).not.toHaveBeenCalled();
+});
+
+test("createReply returns 404 when the ticket does not exist", async () => {
+  ticketFindFirst.mockResolvedValue(null);
+  const res = makeRes();
+
+  await createReply(makeReq(OTHER_TICKET_ID, { body: "Thanks for reaching out" }), res, () => {});
+
+  expect(res.status).toHaveBeenCalledWith(404);
+  expect(res.json).toHaveBeenCalledWith({ error: "Ticket not found" });
+  expect(ticketReplyCreate).not.toHaveBeenCalled();
+});
+
+test("createReply creates a reply authored by the current user", async () => {
+  ticketFindFirst.mockResolvedValue({ id: TICKET_ID });
+  const createdReply = {
+    id: "reply-1",
+    body: "Thanks for reaching out",
+    senderType: "agent",
+    author: { id: "author-1", name: "Agent Smith" },
+  };
+  ticketReplyCreate.mockResolvedValue(createdReply);
+  const res = makeRes();
+
+  await createReply(
+    makeReq(TICKET_ID, { body: "Thanks for reaching out" }, { id: "author-1" }),
+    res,
+    () => {}
+  );
+
+  expect(ticketReplyCreate).toHaveBeenCalledWith({
+    data: {
+      ticketId: TICKET_ID,
+      authorId: "author-1",
+      senderType: "agent",
+      body: "Thanks for reaching out",
+    },
+    select: replySelect,
+  });
+  expect(res.status).toHaveBeenCalledWith(201);
+  expect(res.json).toHaveBeenCalledWith(createdReply);
 });

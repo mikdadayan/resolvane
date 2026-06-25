@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CATEGORY_LABELS } from "../../constants";
-import type { Ticket } from "../../types";
+import type { Ticket } from "@helpdesk/core";
 
 const columns: ColumnDef<Ticket>[] = [
   {

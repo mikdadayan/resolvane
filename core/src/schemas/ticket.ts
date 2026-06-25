@@ -16,6 +16,17 @@ export const TicketCategory = {
 
 export type TicketCategory = (typeof TicketCategory)[keyof typeof TicketCategory];
 
+export type Ticket = {
+  id: string;
+  subject: string;
+  senderName: string;
+  senderEmail: string;
+  status: TicketStatus;
+  category: TicketCategory | null;
+  receivedAt: string;
+  assignedTo: { id: string; name: string } | null;
+};
+
 export const inboundEmailSchema = z.object({
   from: z.string().trim().email("Enter a valid sender email address"),
   fromName: z.string().trim().min(1, "Sender name is required"),

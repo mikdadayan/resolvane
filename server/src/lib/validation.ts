@@ -1,8 +1,20 @@
 import type { Response } from "express";
-import type { ZodType } from "zod";
+import { z, type ZodType } from "zod";
+
+const idSchema = z.uuid();
 
 export function firstIssue(error: { issues: { message: string }[] }) {
   return error.issues[0]?.message ?? "Invalid input.";
+}
+
+// All ids in this app are uuids, so a malformed id can never match — reject before hitting the DB.
+export function validateId(id: string, res: Response, notFoundMessage = "Not found"): string | null {
+  const result = idSchema.safeParse(id);
+  if (!result.success) {
+    res.status(404).json({ error: notFoundMessage });
+    return null;
+  }
+  return result.data;
 }
 
 export function validateBody<T>(schema: ZodType<T>, body: unknown, res: Response): T | null {

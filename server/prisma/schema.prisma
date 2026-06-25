@@ -18,18 +18,19 @@ enum Role {
 }
 
 model user {
-  id              String    @id
+  id              String        @id
   name            String
-  email           String    @unique
+  email           String        @unique
   emailVerified   Boolean
   image           String?
   createdAt       DateTime
   updatedAt       DateTime
-  role            Role      @default(agent)
+  role            Role          @default(agent)
   deletedAt       DateTime?
   sessions        session[]
   accounts        account[]
   assignedTickets ticket[]
+  ticketReplies   ticketReply[]
 
   @@map("user")
 }
@@ -106,6 +107,25 @@ model ticket {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
   deletedAt    DateTime?
+  replies      ticketReply[]
 
   @@map("ticket")
+}
+
+enum ReplySenderType {
+  agent
+  customer
+}
+
+model ticketReply {
+  id         String          @id @default(uuid())
+  ticketId   String
+  ticket     ticket          @relation(fields: [ticketId], references: [id])
+  senderType ReplySenderType
+  authorId   String?
+  author     user?           @relation(fields: [authorId], references: [id])
+  body       String
+  createdAt  DateTime        @default(now())
+
+  @@map("ticket_reply")
 }

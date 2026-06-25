@@ -9,7 +9,7 @@ import TicketsFilters, {
   CATEGORY_FILTER_ALL,
 } from "./components/TicketsFilters";
 import TicketsPagination from "./components/TicketsPagination";
-import type { Ticket } from "./types";
+import type { Ticket } from "@helpdesk/core";
 
 type ListTicketsParams = {
   sortBy: TicketSortBy;

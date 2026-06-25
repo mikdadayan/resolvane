@@ -46,7 +46,7 @@ server/src/
 │   ├── auth.ts            # better-auth instance
 │   ├── prisma.ts          # Prisma client singleton
 │   ├── types.ts           # re-exports Prisma enums (e.g. Role)
-│   ├── validation.ts      # firstIssue, validateBody — shared zod request validation
+│   ├── validation.ts      # firstIssue, validateBody, validateId — shared zod request validation
 │   └── ticket-select.ts   # shared Prisma `select` shape for ticket queries
 ├── middleware/
 │   ├── require-auth.ts           # validates session, populates req.user and req.session
@@ -69,6 +69,7 @@ Key server conventions:
 - Rate limiting on `/api/auth/sign-in` is active **only in production** (`NODE_ENV=production`).
 - Required env vars (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `INBOUND_WEBHOOK_SECRET`) are validated at startup — the server throws immediately if any are missing.
 - **Request body validation**: always use **zod** to validate request bodies via the shared `validateBody(schema, req.body, res)` helper from `server/src/lib/validation.ts`. It runs `safeParse`, and on failure writes the first issue message as `{ error }` with a 400 status and returns `null` — on success it returns the parsed data. Call it at the top of the handler and bail out with `if (!data) return;`. Never inline `schema.safeParse(...)` + manual 400 handling, and never redefine this logic locally in a route file.
+- **Route `:id` param validation**: every route handler that takes an `:id` URL param (e.g. `RequestHandler<{ id: string }>`) must validate it with `validateId(req.params.id, res, "X not found")` from `server/src/lib/validation.ts` **before** any Prisma call. All ids in this app are uuids (`@id @default(uuid())` / `crypto.randomUUID()`), so a malformed id can never match — rejecting it up front with a 404 avoids a wasted DB round trip. Call it at the top of the handler, bail out with `if (!id) return;`, and reuse the returned `id` for the rest of the handler instead of re-reading `req.params.id`. Never inline a uuid check or skip this for a new `:id` route.
 - **Webhooks live under `/api/webhooks`, never mixed into a resource's own router**: any server-to-server endpoint authenticated by a shared secret (via `requireWebhookSecret`) instead of a user session belongs in `server/src/routes/webhooks.ts`, mounted at `/api/webhooks`. Resource routers like `tickets.ts` stay exclusively session-authed (`requireAuth`) — don't add a `requireWebhookSecret`-only route to a session-authed router just because it operates on the same resource. Share Prisma `select` shapes between the two (e.g. `ticket-select.ts`) instead of duplicating them.
 - **Route handlers are named functions, not inline callbacks**: define each handler as a `const handlerName: RequestHandler = async (req, res) => { ... }` above the router, then register all routes together at the bottom of the file (e.g. `router.get("/", requireAuth, requireAdmin, listUsers);`). Never pass an inline `async (req, res) => { ... }` directly to `router.get/post/patch/delete`.
 
@@ -191,6 +192,15 @@ E2e tests live in `e2e/` and run with Playwright. Always use the **`playwright-e
 bun run test:e2e        # run all e2e tests (headless)
 bun run test:e2e:ui     # open Playwright UI
 ```
+
+**When to use e2e vs component tests** — e2e tests require a real browser and a running server. Only write e2e tests for scenarios that genuinely need both:
+- Auth redirects (unauthenticated/unauthorized access)
+- Cross-page navigation flows
+- Data persistence verified by a page reload
+- Full-stack integration flows (e.g. webhook creates data → UI displays it)
+- Full mutation round-trips that cross the network boundary (e.g. submitting a form and seeing the result persisted)
+
+Never write e2e tests for: rendering, display logic, component states, API call verification, form validation, or error messages — use component tests for all of these.
 
 ## Shared code (`core/`)
 
