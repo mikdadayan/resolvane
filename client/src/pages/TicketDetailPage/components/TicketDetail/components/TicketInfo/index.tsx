@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import type { TicketDetail } from "../../../../types";
 
 type Props = {
@@ -25,7 +26,14 @@ export default function TicketInfo({ ticket }: Props) {
       <div className="rounded-lg border border-border p-4">
         <p className="font-medium text-foreground">Message</p>
         <p className="text-sm text-muted-foreground mb-3">From {ticket.senderName}</p>
-        <p className="whitespace-pre-wrap text-foreground">{ticket.body}</p>
+        {ticket.bodyHtml ? (
+          <div
+            className="text-foreground"
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(ticket.bodyHtml) }}
+          />
+        ) : (
+          <p className="whitespace-pre-wrap text-foreground">{ticket.body}</p>
+        )}
       </div>
     </>
   );

@@ -3,6 +3,7 @@ import type { Ticket } from "@helpdesk/core";
 
 export type TicketDetail = Ticket & {
   body: string;
+  bodyHtml: string | null;
   updatedAt: string;
 };
 

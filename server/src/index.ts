@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./lib/auth";
@@ -21,6 +22,7 @@ if (!INBOUND_WEBHOOK_SECRET) throw new Error("INBOUND_WEBHOOK_SECRET is required
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(helmet());
 app.use(cors({ origin: /^http:\/\/localhost(:\d+)?$/, credentials: true }));
 
 if (process.env.NODE_ENV === "production") {
