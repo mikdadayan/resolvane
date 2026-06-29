@@ -1,23 +1,51 @@
+import axios from "axios";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
 import { createReplySchema, type CreateReplyInput } from "@helpdesk/core";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
+async function polishReplyRequest(ticketId: string, body: string): Promise<{ body: string }> {
+  const res = await axios.post(
+    `${import.meta.env.VITE_SERVER_BASE_URL}/api/tickets/${ticketId}/polish-reply`,
+    { body },
+    { withCredentials: true }
+  );
+  return res.data;
+}
+
+function getPolishErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error) && error.response?.data?.error) {
+    return error.response.data.error;
+  }
+  return "Failed to polish reply. Please try again.";
+}
+
 interface Props {
+  ticketId: string;
   onSubmit: (data: CreateReplyInput) => Promise<unknown>;
   isPending: boolean;
   error?: string | null;
 }
 
-export default function ReplyForm({ onSubmit, isPending, error }: Props) {
+export default function ReplyForm({ ticketId, onSubmit, isPending, error }: Props) {
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<CreateReplyInput>({
     resolver: zodResolver(createReplySchema),
+  });
+
+  const body = watch("body");
+
+  const polishMutation = useMutation({
+    mutationFn: (currentBody: string) => polishReplyRequest(ticketId, currentBody),
+    onSuccess: (data) => setValue("body", data.body),
   });
 
   async function handleFormSubmit(data: CreateReplyInput) {
@@ -38,11 +66,21 @@ export default function ReplyForm({ onSubmit, isPending, error }: Props) {
         aria-label="Reply"
         {...register("body")}
       />
-      {errors.body && <p className="text-xs text-destructive">{errors.body.message}</p>}
       {error && <p className="text-sm text-destructive">{error}</p>}
+      {polishMutation.error && (
+        <p className="text-sm text-destructive">{getPolishErrorMessage(polishMutation.error)}</p>
+      )}
 
-      <div className="flex justify-end">
-        <Button type="submit" disabled={isPending}>
+      <div className="flex justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          disabled={!body?.trim() || polishMutation.isPending || isPending}
+          onClick={() => polishMutation.mutate(body)}
+        >
+          {polishMutation.isPending ? "Polishing…" : "Polish"}
+        </Button>
+        <Button type="submit" disabled={!body?.trim() || isPending || polishMutation.isPending}>
           {isPending ? "Sending…" : "Send Reply"}
         </Button>
       </div>

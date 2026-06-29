@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type CreateReplyInput } from "@helpdesk/core";
 import type { Reply, TicketDetail as TicketDetailType } from "../../types";
 import TicketInfo from "./components/TicketInfo";
+import TicketSummary from "./components/TicketSummary";
 import ReplyThread from "./components/ReplyThread";
 import ReplyForm from "./components/ReplyForm";
 
@@ -59,12 +60,15 @@ export default function TicketDetail({ ticket, id }: Props) {
 
       <TicketInfo ticket={ticket} />
 
+      <TicketSummary ticketId={id} />
+
       <div>
         <h2 className="text-sm font-medium text-foreground mb-3">Replies</h2>
         <ReplyThread replies={replies} isPending={repliesPending} />
       </div>
 
       <ReplyForm
+        ticketId={id}
         onSubmit={(data) => replyMutation.mutateAsync(data)}
         isPending={replyMutation.isPending}
         error={replyMutation.error ? getErrorMessage(replyMutation.error) : null}
