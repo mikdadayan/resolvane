@@ -4,7 +4,8 @@ import { requireWebhookSecret } from "../middleware/require-webhook-secret";
 import { prisma } from "../lib/prisma";
 import { validateBody } from "../lib/validation";
 import { ticketSelect } from "../lib/ticket-select";
-import { classifyTicket } from "../lib/classify-ticket";
+import { boss } from "../lib/boss";
+import { CLASSIFY_TICKET_QUEUE } from "../workers/classify-ticket-worker";
 
 const router = Router();
 
@@ -40,7 +41,7 @@ const inboundEmail: RequestHandler = async (req, res) => {
 
   res.status(201).json({ ticket });
 
-  setImmediate(() => classifyTicket(ticket.id, ticket.subject, ticket.body).catch(console.error));
+  boss.send(CLASSIFY_TICKET_QUEUE, { id: ticket.id, subject: ticket.subject, body: ticket.body }).catch(console.error);
 };
 
 router.post("/inbound-email", requireWebhookSecret, inboundEmail);
