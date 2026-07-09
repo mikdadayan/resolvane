@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { TicketStatus, TicketCategory } from "@helpdesk/core";
+import { TicketStatus, TicketCategory, VISIBLE_TICKET_STATUSES } from "@helpdesk/core";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -56,7 +56,7 @@ export default function TicketsFilters({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={STATUS_FILTER_ALL}>All Statuses</SelectItem>
-          {Object.values(TicketStatus).map((value) => (
+          {VISIBLE_TICKET_STATUSES.map((value) => (
             <SelectItem key={value} value={value}>
               {STATUS_LABELS[value]}
             </SelectItem>

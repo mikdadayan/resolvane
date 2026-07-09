@@ -80,6 +80,8 @@ model verification {
 }
 
 enum TicketStatus {
+  new
+  processing
   open
   resolved
   closed
@@ -98,7 +100,7 @@ model ticket {
   bodyHtml     String?
   senderName   String
   senderEmail  String
-  status       TicketStatus    @default(open)
+  status       TicketStatus    @default(new)
   category     TicketCategory?
   messageId    String?         @unique
   receivedAt   DateTime
@@ -115,6 +117,7 @@ model ticket {
 enum ReplySenderType {
   agent
   customer
+  ai
 }
 
 model ticketReply {

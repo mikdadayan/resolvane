@@ -96,8 +96,8 @@ describe("TicketsPage", () => {
     renderWithQuery(<TicketsPage />);
     await waitFor(() => screen.getByText("Cannot log in"));
 
-    expect(screen.getByText("open")).toBeInTheDocument();
-    expect(screen.getByText("closed")).toBeInTheDocument();
+    expect(screen.getByText("Open")).toBeInTheDocument();
+    expect(screen.getByText("Closed")).toBeInTheDocument();
   });
 
   it("defaults to sorting by receivedAt desc", async () => {

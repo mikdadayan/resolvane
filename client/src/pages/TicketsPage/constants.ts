@@ -1,6 +1,8 @@
 import { TicketStatus, TicketCategory } from "@helpdesk/core";
 
 export const STATUS_LABELS: Record<TicketStatus, string> = {
+  [TicketStatus.new]: "New",
+  [TicketStatus.processing]: "Processing",
   [TicketStatus.open]: "Open",
   [TicketStatus.resolved]: "Resolved",
   [TicketStatus.closed]: "Closed",

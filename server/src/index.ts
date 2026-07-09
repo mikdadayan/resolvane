@@ -7,6 +7,7 @@ import { auth } from "./lib/auth";
 import { requireAuth } from "./middleware/require-auth";
 import { boss } from "./lib/boss";
 import { startClassifyTicketWorker } from "./workers/classify-ticket-worker";
+import { startAutoResolveTicketWorker } from "./workers/auto-resolve-ticket-worker";
 import usersRouter from "./routes/users";
 import ticketsRouter from "./routes/tickets";
 import webhooksRouter from "./routes/webhooks";
@@ -15,11 +16,13 @@ const DATABASE_URL = process.env.DATABASE_URL;
 const BETTER_AUTH_SECRET = process.env.BETTER_AUTH_SECRET;
 const BETTER_AUTH_URL = process.env.BETTER_AUTH_URL;
 const INBOUND_WEBHOOK_SECRET = process.env.INBOUND_WEBHOOK_SECRET;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 if (!DATABASE_URL) throw new Error("DATABASE_URL is required");
 if (!BETTER_AUTH_SECRET) throw new Error("BETTER_AUTH_SECRET is required");
 if (!BETTER_AUTH_URL) throw new Error("BETTER_AUTH_URL is required");
 if (!INBOUND_WEBHOOK_SECRET) throw new Error("INBOUND_WEBHOOK_SECRET is required");
+if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY is required");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -60,6 +63,7 @@ async function start() {
   try {
     await boss.start();
     await startClassifyTicketWorker();
+    await startAutoResolveTicketWorker();
     console.log("Job queue started");
   } catch (err) {
     console.error("Failed to start job queue:", err);

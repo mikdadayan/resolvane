@@ -7,7 +7,8 @@
  */
 
 import { prisma } from "../src/lib/prisma";
-import { TicketStatus, TicketCategory } from "../src/generated/prisma/enums";
+import { TicketCategory } from "../src/generated/prisma/enums";
+import { AGENT_SETTABLE_TICKET_STATUSES } from "@helpdesk/core";
 
 const SUBJECTS = [
   "Cannot log in to my account",
@@ -37,7 +38,9 @@ function randomDateWithinLastDays(days: number): Date {
 
 const users = await prisma.user.findMany({ where: { deletedAt: null }, select: { id: true } });
 
-const statuses = Object.values(TicketStatus);
+// "new" and "processing" are system-driven states owned by the auto-resolve pipeline — seeding
+// them directly here would create tickets stuck forever outside that pipeline.
+const statuses = [...AGENT_SETTABLE_TICKET_STATUSES];
 const categories = [...Object.values(TicketCategory), null];
 
 const tickets = Array.from({ length: 100 }, (_, i) => {

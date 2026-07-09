@@ -18,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CATEGORY_LABELS } from "../../constants";
+import { CATEGORY_LABELS, STATUS_LABELS } from "../../constants";
 import type { Ticket } from "@helpdesk/core";
 
 const columns: ColumnDef<Ticket>[] = [
@@ -54,7 +54,7 @@ const columns: ColumnDef<Ticket>[] = [
             : "bg-muted text-muted-foreground"
         }`}
       >
-        {row.original.status}
+        {STATUS_LABELS[row.original.status]}
       </span>
     ),
   },

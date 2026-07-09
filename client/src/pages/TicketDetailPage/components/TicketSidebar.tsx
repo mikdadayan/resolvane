@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { TicketStatus, TicketCategory } from "@helpdesk/core";
+import { TicketStatus, TicketCategory, AGENT_SETTABLE_TICKET_STATUSES } from "@helpdesk/core";
 import { SelectItem } from "@/components/ui/select";
 import { STATUS_LABELS, CATEGORY_LABELS } from "@/pages/TicketsPage/constants";
 import SelectField from "@/components/SelectField";
@@ -88,7 +88,7 @@ export default function TicketSidebar({ ticket, id }: Props) {
         onValueChange={handleStatusChange}
         disabled={updateMutation.isPending}
       >
-        {Object.values(TicketStatus).map((value) => (
+        {AGENT_SETTABLE_TICKET_STATUSES.map((value) => (
           <SelectItem key={value} value={value}>
             {STATUS_LABELS[value]}
           </SelectItem>

@@ -13,7 +13,8 @@ function isValidCategory(value: string): value is TicketCategory {
 export async function classifyTicket(ticket: Pick<ticket, "id" | "subject" | "body">): Promise<void> {
   try {
     const { text } = await generateText({
-      model: groq("llama-3.1-8b-instant"),
+      model: groq("meta-llama/llama-4-scout-17b-16e-instruct"),
+      temperature: 0,
       system:
       "You classify customer support tickets into exactly one of these categories. Reply with the category name only — no punctuation, no explanation.\n\n" +
       "general_question: How-to questions, account navigation, password changes, general guidance, or anything that is not a bug or a billing issue.\n" +
@@ -30,6 +31,7 @@ export async function classifyTicket(ticket: Pick<ticket, "id" | "subject" | "bo
     }
 
     await prisma.ticket.update({ where: { id: ticket.id }, data: { category } });
+    console.log(`[classify-ticket] Ticket ${ticket.id} classified as ${category}`);
   } catch (err) {
     console.error(`[classify-ticket] Failed for ticket ${ticket.id}:`, err);
   }

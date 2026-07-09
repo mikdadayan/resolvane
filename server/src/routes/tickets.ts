@@ -15,7 +15,7 @@ import { prisma } from "../lib/prisma";
 import { replySelect } from "../lib/reply-select";
 import { ticketSelect } from "../lib/ticket-select";
 import { validateBody, validateId, validateQuery } from "../lib/validation";
-import type { TicketStatus, TicketCategory } from "../generated/prisma/enums";
+import { TicketStatus, type TicketCategory } from "../generated/prisma/enums";
 import type { Prisma } from "../generated/prisma/client";
 
 const router = Router();
@@ -26,7 +26,7 @@ const listTickets: RequestHandler = async (req, res) => {
 
   const where: Prisma.ticketWhereInput = {
     deletedAt: null,
-    ...(query.status && { status: query.status as TicketStatus }),
+    status: query.status ? (query.status as TicketStatus) : { not: TicketStatus.processing },
     ...(query.category && { category: query.category as TicketCategory }),
     ...(query.search && {
       OR: [
@@ -192,7 +192,12 @@ const summarizeTicket: RequestHandler<{ id: string }> = async (req, res) => {
   const conversation = [
     `Customer (${ticket.senderName}): ${ticket.body}`,
     ...replies.map((r) => {
-      const sender = r.senderType === "agent" ? `Agent (${r.author?.name ?? "Unknown"})` : `Customer`;
+      const sender =
+        r.senderType === ReplySenderType.agent
+          ? `Agent (${r.author?.name ?? "Unknown"})`
+          : r.senderType === ReplySenderType.ai
+            ? "AI Assistant"
+            : "Customer";
       return `${sender}: ${r.body}`;
     }),
   ].join("\n\n");

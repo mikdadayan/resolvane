@@ -3,6 +3,7 @@ import { z } from "zod";
 export const ReplySenderType = {
   agent: "agent",
   customer: "customer",
+  ai: "ai",
 } as const;
 
 export type ReplySenderType = (typeof ReplySenderType)[keyof typeof ReplySenderType];

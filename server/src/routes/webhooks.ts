@@ -6,6 +6,7 @@ import { validateBody } from "../lib/validation";
 import { ticketSelect } from "../lib/ticket-select";
 import { boss } from "../lib/boss";
 import { CLASSIFY_TICKET_QUEUE } from "../workers/classify-ticket-worker";
+import { AUTO_RESOLVE_TICKET_QUEUE } from "../workers/auto-resolve-ticket-worker";
 
 const router = Router();
 
@@ -42,6 +43,14 @@ const inboundEmail: RequestHandler = async (req, res) => {
   res.status(201).json({ ticket });
 
   boss.send(CLASSIFY_TICKET_QUEUE, { id: ticket.id, subject: ticket.subject, body: ticket.body }).catch(console.error);
+  boss
+    .send(AUTO_RESOLVE_TICKET_QUEUE, {
+      id: ticket.id,
+      subject: ticket.subject,
+      body: ticket.body,
+      senderName: ticket.senderName,
+    })
+    .catch(console.error);
 };
 
 router.post("/inbound-email", requireWebhookSecret, inboundEmail);

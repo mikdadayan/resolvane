@@ -1,12 +1,23 @@
 import { z } from "zod";
 
 export const TicketStatus = {
+  new: "new",
+  processing: "processing",
   open: "open",
   resolved: "resolved",
   closed: "closed",
 } as const;
 
 export type TicketStatus = (typeof TicketStatus)[keyof typeof TicketStatus];
+
+export const VISIBLE_TICKET_STATUSES = [
+  TicketStatus.new,
+  TicketStatus.open,
+  TicketStatus.resolved,
+  TicketStatus.closed,
+] as const;
+
+export const AGENT_SETTABLE_TICKET_STATUSES = [TicketStatus.open, TicketStatus.resolved, TicketStatus.closed] as const;
 
 export const TicketCategory = {
   generalQuestion: "general_question",
@@ -56,7 +67,7 @@ export const listTicketsQuerySchema = z.object({
   sortBy: z.enum(Object.values(TicketSortBy) as [string, ...string[]]).default(TicketSortBy.receivedAt),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
   search: z.string().trim().min(1).optional(),
-  status: z.enum(Object.values(TicketStatus) as [string, ...string[]]).optional(),
+  status: z.enum(VISIBLE_TICKET_STATUSES as unknown as [string, ...string[]]).optional(),
   category: z.enum(Object.values(TicketCategory) as [string, ...string[]]).optional(),
   page: z.coerce.number().int().min(1).default(1),
 });
@@ -71,7 +82,7 @@ export type AssignTicketInput = z.infer<typeof assignTicketSchema>;
 
 export const updateTicketSchema = z
   .object({
-    status: z.enum(Object.values(TicketStatus) as [string, ...string[]]).optional(),
+    status: z.enum(AGENT_SETTABLE_TICKET_STATUSES as unknown as [string, ...string[]]).optional(),
     category: z.enum(Object.values(TicketCategory) as [string, ...string[]]).optional(),
   })
   .refine((data) => data.status !== undefined || data.category !== undefined, {

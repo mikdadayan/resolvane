@@ -1,12 +1,25 @@
 import { ReplySenderType } from "@helpdesk/core";
-import { Badge } from "@/components/ui/badge";
+import { Badge, badgeVariants } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Reply } from "../../../../types";
+import type { VariantProps } from "class-variance-authority";
 
 interface Props {
   replies: Reply[] | undefined;
   isPending: boolean;
 }
+
+const SENDER_LABELS: Record<ReplySenderType, string> = {
+  [ReplySenderType.agent]: "Agent",
+  [ReplySenderType.customer]: "Customer",
+  [ReplySenderType.ai]: "AI",
+};
+
+const SENDER_BADGE_VARIANTS: Record<ReplySenderType, NonNullable<VariantProps<typeof badgeVariants>["variant"]>> = {
+  [ReplySenderType.agent]: "default",
+  [ReplySenderType.customer]: "outline",
+  [ReplySenderType.ai]: "secondary",
+};
 
 export default function ReplyThread({ replies, isPending }: Props) {
   if (isPending) {
@@ -28,10 +41,10 @@ export default function ReplyThread({ replies, isPending }: Props) {
         <div key={reply.id} className="rounded-lg border border-border p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <p className="font-medium text-foreground">{reply.author?.name ?? "Customer"}</p>
-              <Badge variant={reply.senderType === ReplySenderType.agent ? "default" : "outline"}>
-                {reply.senderType === ReplySenderType.agent ? "Agent" : "Customer"}
-              </Badge>
+              <p className="font-medium text-foreground">
+                {reply.senderType === ReplySenderType.ai ? "AI Assistant" : (reply.author?.name ?? "Customer")}
+              </p>
+              <Badge variant={SENDER_BADGE_VARIANTS[reply.senderType]}>{SENDER_LABELS[reply.senderType]}</Badge>
             </div>
             <p className="text-xs text-muted-foreground">
               {new Date(reply.createdAt).toLocaleString()}
