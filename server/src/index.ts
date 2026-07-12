@@ -11,6 +11,7 @@ import { startAutoResolveTicketWorker } from "./workers/auto-resolve-ticket-work
 import usersRouter from "./routes/users";
 import ticketsRouter from "./routes/tickets";
 import webhooksRouter from "./routes/webhooks";
+import dashboardRouter from "./routes/dashboard";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 const BETTER_AUTH_SECRET = process.env.BETTER_AUTH_SECRET;
@@ -58,6 +59,7 @@ app.get("/api/me", requireAuth, (req, res) => {
 app.use("/api/users", usersRouter);
 app.use("/api/tickets", ticketsRouter);
 app.use("/api/webhooks", webhooksRouter);
+app.use("/api/dashboard", dashboardRouter);
 
 async function start() {
   try {

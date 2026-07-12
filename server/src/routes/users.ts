@@ -6,6 +6,7 @@ import { requireAdmin } from "../middleware/require-admin";
 import { prisma } from "../lib/prisma";
 import { Role } from "../lib/types";
 import { validateBody } from "../lib/validation";
+import { AI_AGENT_ID } from "../lib/ai-agent";
 
 const router = Router();
 
@@ -109,6 +110,10 @@ const deleteUser: RequestHandler = async (req, res) => {
   }
   if (user.role === "admin") {
     res.status(403).json({ error: "Admin users cannot be deleted." });
+    return;
+  }
+  if (user.id === AI_AGENT_ID) {
+    res.status(403).json({ error: "The AI agent cannot be deleted." });
     return;
   }
 

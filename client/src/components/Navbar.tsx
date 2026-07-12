@@ -17,6 +17,11 @@ export default function Navbar() {
       <div className="flex items-center gap-6">
         <Link to="/" className="text-lg font-semibold text-foreground hover:opacity-80 transition-opacity">Helpdesk</Link>
         {session && (
+          <Link to="/dashboard" className="text-sm text-muted-foreground transition-colors">
+            Dashboard
+          </Link>
+        )}
+        {session && (
           <Link to="/tickets" className="text-sm text-muted-foreground transition-colors">
             Tickets
           </Link>

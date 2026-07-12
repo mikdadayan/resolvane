@@ -109,6 +109,7 @@ model ticket {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
   deletedAt    DateTime?
+  resolvedAt   DateTime?
   replies      ticketReply[]
 
   @@map("ticket")

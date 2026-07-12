@@ -5,7 +5,8 @@
 	"private": true,
 	"scripts": {
 		"dev": "bun --hot src/index.ts",
-		"seed": "bun prisma/seed.ts"
+		"seed": "bun prisma/seed.ts",
+		"seed:ai-agent": "bun prisma/seed-ai-agent.ts"
 	},
 	"devDependencies": {
 		"@types/bun": "latest",

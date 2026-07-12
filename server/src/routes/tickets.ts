@@ -113,11 +113,17 @@ export const updateTicket: RequestHandler<{ id: string }> = async (req, res) => 
     return;
   }
 
+  // Only stamp resolvedAt on a genuine transition into "resolved" — never overwrite it just
+  // because an already-resolved ticket is being edited for an unrelated reason (e.g. category).
+  const isTransitioningToResolved =
+    data.status === TicketStatus.resolved && ticket.status !== TicketStatus.resolved;
+
   const updated = await prisma.ticket.update({
     where: { id },
     data: {
       ...(data.status && { status: data.status as TicketStatus }),
       ...(data.category && { category: data.category as TicketCategory }),
+      ...(isTransitioningToResolved && { resolvedAt: new Date() }),
     },
     select: ticketSelect,
   });

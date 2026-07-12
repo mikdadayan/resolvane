@@ -7,6 +7,7 @@ import { ticketSelect } from "../lib/ticket-select";
 import { boss } from "../lib/boss";
 import { CLASSIFY_TICKET_QUEUE } from "../workers/classify-ticket-worker";
 import { AUTO_RESOLVE_TICKET_QUEUE } from "../workers/auto-resolve-ticket-worker";
+import { AI_AGENT_ID } from "../lib/ai-agent";
 
 const router = Router();
 
@@ -36,6 +37,7 @@ const inboundEmail: RequestHandler = async (req, res) => {
       senderEmail: from,
       messageId: messageId ?? null,
       receivedAt,
+      assignedToId: AI_AGENT_ID,
     },
     select: ticketSelect,
   });

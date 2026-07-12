@@ -156,7 +156,7 @@ test("updateTicket returns 404 when the ticket does not exist", async () => {
 });
 
 test("updateTicket updates only the status when category is omitted", async () => {
-  ticketFindFirst.mockResolvedValue({ id: TICKET_ID });
+  ticketFindFirst.mockResolvedValue({ id: TICKET_ID, status: "open" });
   const updatedTicket = { id: TICKET_ID, status: "resolved" };
   ticketUpdate.mockResolvedValue(updatedTicket);
   const res = makeRes();
@@ -165,10 +165,42 @@ test("updateTicket updates only the status when category is omitted", async () =
 
   expect(ticketUpdate).toHaveBeenCalledWith({
     where: { id: TICKET_ID },
-    data: { status: "resolved" },
+    data: { status: "resolved", resolvedAt: expect.any(Date) },
     select: ticketSelect,
   });
   expect(res.json).toHaveBeenCalledWith(updatedTicket);
+});
+
+test("updateTicket sets resolvedAt when transitioning into resolved", async () => {
+  ticketFindFirst.mockResolvedValue({ id: TICKET_ID, status: "open" });
+  const updatedTicket = { id: TICKET_ID, status: "resolved" };
+  ticketUpdate.mockResolvedValue(updatedTicket);
+  const res = makeRes();
+
+  await updateTicket(makeReq(TICKET_ID, { status: "resolved" }), res, () => {});
+
+  expect(ticketUpdate).toHaveBeenCalledWith(
+    expect.objectContaining({ data: expect.objectContaining({ resolvedAt: expect.any(Date) }) })
+  );
+});
+
+test("updateTicket does not overwrite resolvedAt when the ticket is already resolved", async () => {
+  ticketFindFirst.mockResolvedValue({ id: TICKET_ID, status: "resolved" });
+  const updatedTicket = { id: TICKET_ID, status: "resolved", category: "refund_request" };
+  ticketUpdate.mockResolvedValue(updatedTicket);
+  const res = makeRes();
+
+  await updateTicket(
+    makeReq(TICKET_ID, { status: "resolved", category: "refund_request" }),
+    res,
+    () => {}
+  );
+
+  expect(ticketUpdate).toHaveBeenCalledWith({
+    where: { id: TICKET_ID },
+    data: { status: "resolved", category: "refund_request" },
+    select: ticketSelect,
+  });
 });
 
 test("updateTicket updates both status and category when both are provided", async () => {

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "./prisma";
 import { ReplySenderType, TicketStatus } from "@helpdesk/core";
 import type { ticket } from "../generated/prisma/client";
+import { AI_AGENT_ID } from "./ai-agent";
 
 const knowledgeBasePath = new URL("../../knowledge-base.md", import.meta.url);
 let knowledgeBasePromise: Promise<string> | null = null;
@@ -32,8 +33,8 @@ const resolutionSchema = z.object({
 async function markOpen(ticketId: string): Promise<void> {
   const release = () =>
     prisma.ticket.updateMany({
-      where: { id: ticketId, status: TicketStatus.processing },
-      data: { status: TicketStatus.open },
+      where: { id: ticketId, status: TicketStatus.processing, assignedToId: AI_AGENT_ID },
+      data: { status: TicketStatus.open, assignedToId: null },
     });
 
   // Retry once — a ticket must never be left stuck in "processing" (hidden from the ticket
@@ -102,7 +103,7 @@ export async function autoResolveTicket(
       await prisma.$transaction(async (tx) => {
         const { count } = await tx.ticket.updateMany({
           where: { id: ticket.id, status: TicketStatus.processing },
-          data: { status: TicketStatus.resolved },
+          data: { status: TicketStatus.resolved, resolvedAt: new Date() },
         });
         if (count === 0) return;
 
