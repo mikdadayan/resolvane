@@ -6,42 +6,20 @@
  * AdminRoute, so both admin and agent should be able to view it.
  *
  * There is no UI for creating tickets yet, so the "row appears with real
- * data" test seeds a ticket through the inbound email webhook (same pattern
- * as e2e/api/webhooks.spec.ts) using Playwright's `request` fixture, then
- * navigates to /tickets in the browser to assert it renders correctly.
- *
- * The webhook secret/URL come from process.env.INBOUND_WEBHOOK_SECRET, which
- * playwright.config.ts loads from server/.env.test via process.loadEnvFile —
- * no value is duplicated here. Each seeded ticket uses a random messageId and
- * a unique subject (via crypto.randomUUID()) so repeated runs against the
- * shared test database never collide with leftover data.
+ * data" test seeds a ticket through the inbound email webhook (via
+ * seedTicketViaWebhook, shared with e2e/api/webhooks.spec.ts) using
+ * Playwright's `request` fixture, then navigates to /tickets in the browser
+ * to assert it renders correctly. Each seeded ticket uses a random
+ * messageId/emailId and a unique subject so repeated runs against the shared
+ * test database never collide with leftover data.
  */
 
 import { test, expect } from "@playwright/test";
 import { randomUUID } from "crypto";
 import { loginAs } from "../fixtures/auth";
-
-if (!process.env.INBOUND_WEBHOOK_SECRET) {
-  throw new Error("INBOUND_WEBHOOK_SECRET is required (expected from server/.env.test)");
-}
-
-const WEBHOOK_URL = "http://localhost:3001/api/webhooks/inbound-email";
-const WEBHOOK_SECRET = process.env.INBOUND_WEBHOOK_SECRET;
+import { seedTicketViaWebhook } from "../fixtures/resend-webhook";
 
 const TABLE_HEADERS = ["Subject", "From", "Status", "Category", "Assigned", "Received"];
-
-function makePayload(overrides: Record<string, unknown> = {}) {
-  return {
-    from: "customer@example.com",
-    fromName: "Jane Customer",
-    to: "support@helpdesk.example",
-    subject: "Cannot log in to my account",
-    body: "I keep getting an error when I try to log in.",
-    receivedAt: new Date().toISOString(),
-    messageId: randomUUID(),
-    ...overrides,
-  };
-}
 
 test.describe("Tickets page — access control", () => {
   test("agent can navigate to /tickets via the Navbar and sees the table headers", async ({
@@ -85,17 +63,10 @@ test.describe("Tickets page — seeded ticket data", () => {
     request,
   }) => {
     const uniqueSubject = `E2E Test Subject ${randomUUID()}`;
-    const payload = makePayload({
+    await seedTicketViaWebhook(request, {
       subject: uniqueSubject,
-      from: "e2e-customer@example.com",
-      fromName: "E2E Customer",
+      from: "E2E Customer <e2e-customer@example.com>",
     });
-
-    const response = await request.post(WEBHOOK_URL, {
-      headers: { "x-webhook-secret": WEBHOOK_SECRET },
-      data: payload,
-    });
-    expect(response.status()).toBe(201);
 
     await loginAs(page, "agent");
     await page.goto("/tickets");

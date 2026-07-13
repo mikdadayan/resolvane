@@ -15,6 +15,7 @@ import { prisma } from "../lib/prisma";
 import { replySelect } from "../lib/reply-select";
 import { ticketSelect } from "../lib/ticket-select";
 import { validateBody, validateId, validateQuery } from "../lib/validation";
+import { sendReplyEmail } from "../lib/send-reply-email";
 import { TicketStatus, type TicketCategory } from "../generated/prisma/enums";
 import type { Prisma } from "../generated/prisma/client";
 
@@ -160,6 +161,19 @@ export const createReply: RequestHandler<{ id: string }> = async (req, res) => {
   const ticket = await prisma.ticket.findFirst({ where: { id, deletedAt: null } });
   if (!ticket) {
     res.status(404).json({ error: "Ticket not found" });
+    return;
+  }
+
+  try {
+    await sendReplyEmail({
+      to: ticket.senderEmail,
+      subject: ticket.subject,
+      body: data.body,
+      messageId: ticket.messageId,
+    });
+  } catch (err) {
+    console.error(`Failed to send reply email for ticket ${id}:`, err);
+    res.status(502).json({ error: "Failed to send the reply email. The reply was not saved." });
     return;
   }
 

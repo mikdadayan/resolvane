@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "types": ["node"],
+    "types": ["node", "bun"],
     "strict": true
   },
   "include": ["playwright.config.ts", "e2e/**/*.ts"]

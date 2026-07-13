@@ -16,14 +16,18 @@ import dashboardRouter from "./routes/dashboard";
 const DATABASE_URL = process.env.DATABASE_URL;
 const BETTER_AUTH_SECRET = process.env.BETTER_AUTH_SECRET;
 const BETTER_AUTH_URL = process.env.BETTER_AUTH_URL;
-const INBOUND_WEBHOOK_SECRET = process.env.INBOUND_WEBHOOK_SECRET;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const RESEND_WEBHOOK_SECRET = process.env.RESEND_WEBHOOK_SECRET;
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL;
 
 if (!DATABASE_URL) throw new Error("DATABASE_URL is required");
 if (!BETTER_AUTH_SECRET) throw new Error("BETTER_AUTH_SECRET is required");
 if (!BETTER_AUTH_URL) throw new Error("BETTER_AUTH_URL is required");
-if (!INBOUND_WEBHOOK_SECRET) throw new Error("INBOUND_WEBHOOK_SECRET is required");
 if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY is required");
+if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY is required");
+if (!RESEND_WEBHOOK_SECRET) throw new Error("RESEND_WEBHOOK_SECRET is required");
+if (!RESEND_FROM_EMAIL) throw new Error("RESEND_FROM_EMAIL is required");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -45,7 +49,13 @@ if (process.env.NODE_ENV === "production") {
 // Must be before express.json()
 app.all("/api/auth/*splat", toNodeHandler(auth));
 
-app.use(express.json());
+app.use(
+  express.json({
+    verify: (req, _res, buf) => {
+      (req as express.Request).rawBody = buf;
+    },
+  }),
+);
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });

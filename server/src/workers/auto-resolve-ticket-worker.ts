@@ -3,7 +3,14 @@ import { autoResolveTicket } from "../lib/auto-resolve-ticket";
 
 export const AUTO_RESOLVE_TICKET_QUEUE = "auto-resolve-ticket";
 
-type AutoResolveTicketJob = { id: string; subject: string; body: string; senderName: string };
+type AutoResolveTicketJob = {
+  id: string;
+  subject: string;
+  body: string;
+  senderName: string;
+  senderEmail: string;
+  messageId: string | null;
+};
 
 export async function startAutoResolveTicketWorker() {
   await boss.createQueue(AUTO_RESOLVE_TICKET_QUEUE);

@@ -1,8 +1,7 @@
 import { Router, type RequestHandler } from "express";
-import { inboundEmailSchema } from "@helpdesk/core";
 import { requireWebhookSecret } from "../middleware/require-webhook-secret";
 import { prisma } from "../lib/prisma";
-import { validateBody } from "../lib/validation";
+import { resend } from "../lib/resend";
 import { ticketSelect } from "../lib/ticket-select";
 import { boss } from "../lib/boss";
 import { CLASSIFY_TICKET_QUEUE } from "../workers/classify-ticket-worker";
@@ -11,32 +10,51 @@ import { AI_AGENT_ID } from "../lib/ai-agent";
 
 const router = Router();
 
-const inboundEmail: RequestHandler = async (req, res) => {
-  const data = validateBody(inboundEmailSchema, req.body, res);
-  if (!data) return;
-
-  const { from, fromName, subject, body, bodyHtml, messageId, receivedAt } = data;
-
-  if (messageId) {
-    const existing = await prisma.ticket.findFirst({
-      where: { messageId },
-      select: ticketSelect,
-    });
-    if (existing) {
-      res.status(200).json({ ticket: existing });
-      return;
-    }
+function parseFromAddress(from: string): { senderName: string; senderEmail: string } {
+  const match = from.match(/^(.*)<(.+)>$/);
+  if (!match) {
+    return { senderName: from, senderEmail: from };
   }
+
+  const senderName = match[1]!.trim().replace(/^"|"$/g, "");
+  const senderEmail = match[2]!.trim();
+  return { senderName: senderName || senderEmail, senderEmail };
+}
+
+const inboundEmail: RequestHandler = async (req, res) => {
+  const event = req.resendEvent!;
+
+  if (event.type !== "email.received") {
+    res.status(200).json({ ignored: event.type });
+    return;
+  }
+
+  const existing = await prisma.ticket.findFirst({
+    where: { messageId: event.data.message_id },
+    select: ticketSelect,
+  });
+  if (existing) {
+    res.status(200).json({ ticket: existing });
+    return;
+  }
+
+  const { data: email, error } = await resend.emails.receiving.get(event.data.email_id);
+  if (error || !email) {
+    res.status(502).json({ error: "Failed to fetch email content from Resend" });
+    return;
+  }
+
+  const { senderName, senderEmail } = parseFromAddress(email.from);
 
   const ticket = await prisma.ticket.create({
     data: {
-      subject,
-      body,
-      bodyHtml: bodyHtml ?? null,
-      senderName: fromName,
-      senderEmail: from,
-      messageId: messageId ?? null,
-      receivedAt,
+      subject: email.subject,
+      body: email.text ?? "",
+      bodyHtml: email.html ?? null,
+      senderName,
+      senderEmail,
+      messageId: email.message_id,
+      receivedAt: new Date(email.created_at),
       assignedToId: AI_AGENT_ID,
     },
     select: ticketSelect,
@@ -51,6 +69,8 @@ const inboundEmail: RequestHandler = async (req, res) => {
       subject: ticket.subject,
       body: ticket.body,
       senderName: ticket.senderName,
+      senderEmail: ticket.senderEmail,
+      messageId: email.message_id,
     })
     .catch(console.error);
 };

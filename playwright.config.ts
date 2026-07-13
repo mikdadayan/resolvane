@@ -2,12 +2,13 @@ import { defineConfig, devices } from "@playwright/test";
 import path from "path";
 
 // Load server/.env.test into this process so test files can read the same
-// INBOUND_WEBHOOK_SECRET / ADMIN_EMAIL / etc. values the test server uses,
+// RESEND_WEBHOOK_SECRET / ADMIN_EMAIL / etc. values the test server uses,
 // instead of duplicating them as hardcoded fallbacks in test code.
 process.loadEnvFile(path.resolve(__dirname, "server/.env.test"));
 
 const SERVER_PORT = 3001;
 const SERVER_BASE_URL = `http://localhost:${SERVER_PORT}`;
+const RESEND_STUB_PORT = 3002;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -30,6 +31,12 @@ export default defineConfig({
     },
   ],
   webServer: [
+    {
+      command: "/Users/mikayeldadayan/.bun/bin/bun resend-stub-server.ts",
+      cwd: "e2e",
+      port: RESEND_STUB_PORT,
+      reuseExistingServer: !process.env.CI,
+    },
     {
       command: "/Users/mikayeldadayan/.bun/bin/bun --env-file .env.test --hot src/index.ts",
       cwd: "server",

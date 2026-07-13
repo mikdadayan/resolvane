@@ -38,19 +38,6 @@ export type Ticket = {
   assignedTo: { id: string; name: string } | null;
 };
 
-export const inboundEmailSchema = z.object({
-  from: z.string().trim().email("Enter a valid sender email address"),
-  fromName: z.string().trim().min(1, "Sender name is required"),
-  to: z.string().trim().email("Enter a valid recipient email address"),
-  subject: z.string().trim().min(1, "Subject is required"),
-  body: z.string().trim().min(1, "Body is required"),
-  bodyHtml: z.string().trim().min(1).optional(),
-  messageId: z.string().trim().min(1).optional(),
-  receivedAt: z.coerce.date(),
-});
-
-export type InboundEmailInput = z.infer<typeof inboundEmailSchema>;
-
 export const TicketSortBy = {
   subject: "subject",
   senderName: "senderName",

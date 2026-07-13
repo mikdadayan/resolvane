@@ -5,6 +5,7 @@ import { prisma } from "./prisma";
 import { ReplySenderType, TicketStatus } from "@helpdesk/core";
 import type { ticket } from "../generated/prisma/client";
 import { AI_AGENT_ID } from "./ai-agent";
+import { sendReplyEmail } from "./send-reply-email";
 
 const knowledgeBasePath = new URL("../../knowledge-base.md", import.meta.url);
 let knowledgeBasePromise: Promise<string> | null = null;
@@ -52,7 +53,7 @@ function getFirstName(senderName: string): string {
 }
 
 export async function autoResolveTicket(
-  ticket: Pick<ticket, "id" | "subject" | "body" | "senderName">,
+  ticket: Pick<ticket, "id" | "subject" | "body" | "senderName" | "senderEmail" | "messageId">,
 ): Promise<void> {
   try {
     // Only claim tickets still in their initial "new" state — if an agent already acted on this
@@ -98,6 +99,22 @@ export async function autoResolveTicket(
     console.log(`[auto-resolve-ticket] Ticket ${ticket.id}: ${reply ? "resolved" : "escalated to human"}`);
 
     if (reply) {
+      // Send before persisting anything — if delivery fails, the customer never got an
+      // answer, so the ticket must not be recorded as resolved with a reply that never
+      // went out. Escalate to a human instead, same as a low-confidence AI result.
+      try {
+        await sendReplyEmail({
+          to: ticket.senderEmail,
+          subject: ticket.subject,
+          body: reply,
+          messageId: ticket.messageId,
+        });
+      } catch (err) {
+        console.error(`[auto-resolve-ticket] Failed to send reply email for ticket ${ticket.id}:`, err);
+        await markOpen(ticket.id);
+        return;
+      }
+
       // Guard the same way as markOpen: only attach the reply and resolve if nothing else
       // (e.g. an agent) moved the ticket out of "processing" while the AI call was in flight.
       await prisma.$transaction(async (tx) => {

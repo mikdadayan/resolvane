@@ -9,49 +9,22 @@
  * covered by unit tests (TicketInfo, ReplyThread). These tests focus on auth,
  * navigation, and full-stack mutation flows that unit tests cannot cover.
  *
- * Each test seeds a fresh ticket via the inbound email webhook (same pattern as
- * tickets.spec.ts) so tests are fully independent and never collide with data
- * from other runs against the shared test database. Subjects include Date.now()
- * to guarantee uniqueness across repeated runs.
+ * Each test seeds a fresh ticket via the inbound email webhook (via
+ * seedTicketViaWebhook, shared with tickets.spec.ts and
+ * e2e/api/webhooks.spec.ts) so tests are fully independent and never collide
+ * with data from other runs against the shared test database.
  */
 
 import { test, expect } from "@playwright/test";
-import { randomUUID } from "crypto";
 import { loginAs } from "../fixtures/auth";
-
-if (!process.env.INBOUND_WEBHOOK_SECRET) {
-  throw new Error(
-    "INBOUND_WEBHOOK_SECRET is required (expected from server/.env.test)"
-  );
-}
-
-const WEBHOOK_URL = "http://localhost:3001/api/webhooks/inbound-email";
-const WEBHOOK_SECRET = process.env.INBOUND_WEBHOOK_SECRET;
-
-function makePayload(overrides: Record<string, unknown> = {}) {
-  return {
-    from: "customer@example.com",
-    fromName: "Jane Customer",
-    to: "support@helpdesk.example",
-    subject: `Support request ${randomUUID()}`,
-    body: "I need help with my order.",
-    receivedAt: new Date().toISOString(),
-    messageId: randomUUID(),
-    ...overrides,
-  };
-}
+import { seedTicketViaWebhook } from "../fixtures/resend-webhook";
 
 test.describe("Ticket detail page — access control", () => {
   test("unauthenticated visit to /tickets/:id redirects to /login", async ({
     page,
     request,
   }) => {
-    const seedResponse = await request.post(WEBHOOK_URL, {
-      headers: { "x-webhook-secret": WEBHOOK_SECRET },
-      data: makePayload(),
-    });
-    expect(seedResponse.status()).toBe(201);
-    const { ticket } = await seedResponse.json();
+    const ticket = await seedTicketViaWebhook(request);
 
     await page.goto(`/tickets/${ticket.id}`);
     await page.waitForURL("/login");
@@ -65,12 +38,7 @@ test.describe("Ticket detail page — content and interactions", () => {
 
   test.beforeEach(async ({ page, request }) => {
     ticketSubject = `Support request ${Date.now()}`;
-    const seedResponse = await request.post(WEBHOOK_URL, {
-      headers: { "x-webhook-secret": WEBHOOK_SECRET },
-      data: makePayload({ subject: ticketSubject }),
-    });
-    expect(seedResponse.status()).toBe(201);
-    const { ticket } = await seedResponse.json();
+    const ticket = await seedTicketViaWebhook(request, { subject: ticketSubject });
     ticketId = ticket.id;
 
     await loginAs(page, "agent");
