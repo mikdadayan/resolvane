@@ -25,6 +25,7 @@ interface Props {
 export default function EditUserDialog({ user, onOpenChange }: Props) {
   const queryClient = useQueryClient();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [prevUser, setPrevUser] = useState(user);
 
   const {
     register,
@@ -37,10 +38,14 @@ export default function EditUserDialog({ user, onOpenChange }: Props) {
     defaultValues: { name: "", email: "", password: "", role: Role.agent },
   });
 
+  if (user !== prevUser) {
+    setPrevUser(user);
+    setServerError(null);
+  }
+
   useEffect(() => {
     if (user) {
       reset({ name: user.name, email: user.email, password: "", role: user.role });
-      setServerError(null);
     }
   }, [user, reset]);
 
