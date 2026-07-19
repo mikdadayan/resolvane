@@ -1,7 +1,9 @@
+import "./instrument";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import * as Sentry from "@sentry/node";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./lib/auth";
 import { requireAuth } from "./middleware/require-auth";
@@ -71,6 +73,13 @@ app.use("/api/tickets", ticketsRouter);
 app.use("/api/webhooks", webhooksRouter);
 app.use("/api/dashboard", dashboardRouter);
 
+Sentry.setupExpressErrorHandler(app);
+
+app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error(err);
+  res.status(500).json({ error: "Internal server error" });
+});
+
 async function start() {
   try {
     await boss.start();
@@ -79,6 +88,8 @@ async function start() {
     console.log("Job queue started");
   } catch (err) {
     console.error("Failed to start job queue:", err);
+    Sentry.captureException(err);
+    await Sentry.flush(2000);
     process.exit(1);
   }
 

@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/node";
 import { boss } from "../lib/boss";
 import { autoResolveTicket } from "../lib/auto-resolve-ticket";
 
@@ -17,7 +18,12 @@ export async function startAutoResolveTicketWorker() {
 
   await boss.work<AutoResolveTicketJob>(AUTO_RESOLVE_TICKET_QUEUE, async (jobs) => {
     for (const job of jobs) {
-      await autoResolveTicket(job.data);
+      try {
+        await autoResolveTicket(job.data);
+      } catch (err) {
+        Sentry.captureException(err);
+        throw err;
+      }
     }
   });
 }

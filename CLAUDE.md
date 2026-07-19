@@ -132,6 +132,10 @@ client/src/
 | `VITE_SERVER_BASE_URL` | client | Base URL for all API calls |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | server | Seed credentials for the admin user |
 | `INBOUND_WEBHOOK_SECRET` | server | Shared secret for the inbound email webhook (`x-webhook-secret` header) — generate with `openssl rand -hex 32` |
+| `SENTRY_DSN` | server | Sentry error monitoring DSN — leave blank to disable (e.g. local dev/test) |
+| `SENTRY_ENVIRONMENT` | server | Sentry environment tag (e.g. development, staging, production) — used to filter issues in Sentry |
+| `VITE_SENTRY_DSN` | client | Sentry error monitoring DSN — leave blank to disable (e.g. local dev/test) |
+| `VITE_SENTRY_ENVIRONMENT` | client | Sentry environment tag (e.g. development, staging, production) — used to filter issues in Sentry |
 
 ## Testing
 
