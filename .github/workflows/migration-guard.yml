@@ -1,0 +1,34 @@
+name: Migration Guard
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "server/prisma/migrations/**"
+  push:
+    branches: [master]
+    paths:
+      - "server/prisma/migrations/**"
+
+jobs:
+  check-immutable-migrations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check no already-committed migration file was modified or deleted
+        run: |
+          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+          HEAD="${{ github.event.pull_request.head.sha || github.event.after }}"
+
+          CHANGED=$(git diff --name-status --diff-filter=MD "$BASE" "$HEAD" -- server/prisma/migrations || true)
+
+          if [ -n "$CHANGED" ]; then
+            echo "The following already-committed migration file(s) were modified or deleted:"
+            echo "$CHANGED"
+            echo ""
+            echo "Editing or deleting an existing migration is not allowed — create a new migration instead."
+            exit 1
+          fi

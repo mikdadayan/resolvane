@@ -1,0 +1,13 @@
+#!/bin/sh
+# Blocks commits that modify or delete an already-committed Prisma migration file.
+# New migration files are unaffected — only edits/deletes of previously committed ones are blocked.
+
+changed=$(git diff --cached --name-status --diff-filter=MD -- server/prisma/migrations)
+
+if [ -n "$changed" ]; then
+  echo "Error: this commit modifies or deletes an already-committed migration file:"
+  echo "$changed"
+  echo ""
+  echo "Editing or deleting an existing migration is not allowed. Create a new migration instead."
+  exit 1
+fi
