@@ -3,12 +3,8 @@ name: Migration Guard
 on:
   pull_request:
     branches: [master]
-    paths:
-      - "server/prisma/migrations/**"
   push:
     branches: [master]
-    paths:
-      - "server/prisma/migrations/**"
 
 jobs:
   check-immutable-migrations:
@@ -32,3 +28,5 @@ jobs:
             echo "Editing or deleting an existing migration is not allowed — create a new migration instead."
             exit 1
           fi
+
+          echo "No existing migration files were modified or deleted."
