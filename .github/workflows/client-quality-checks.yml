@@ -41,5 +41,9 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Install core package dependencies
+        working-directory: core
+        run: bun install
+
       - name: Run component tests
         run: bun run test
