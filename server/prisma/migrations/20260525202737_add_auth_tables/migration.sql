@@ -12,7 +12,9 @@ CREATE TABLE "user" (
 );
 
 -- CreateTable
-CREATE TABLE "session" ( 
+CREATE TABLE "session" (
+    
+     
     "id" TEXT NOT NULL,
     "expiresAt" TIMESTAMP(3) NOT NULL,
     "token" TEXT NOT NULL,
