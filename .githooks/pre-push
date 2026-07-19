@@ -1,0 +1,11 @@
+#!/bin/sh
+# Blocks a push if the client's lint or test suite fails, mirroring the
+# required CI checks so failures are caught locally before reaching GitHub.
+
+set -e
+
+echo "Running client lint..."
+(cd client && bun run lint)
+
+echo "Running client tests..."
+(cd client && bun run test)
