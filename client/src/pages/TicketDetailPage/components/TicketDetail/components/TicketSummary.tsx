@@ -42,9 +42,11 @@ export default function TicketSummary({ ticketId }: Props) {
       </Button>
 
       {data && (
-        <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm text-foreground">
-          <p className="font-medium mb-1">Summary</p>
-          <p className="text-muted-foreground leading-relaxed">{data.summary}</p>
+        <div className="rounded-r-md border-l-2 border-l-ai-accent bg-ai-surface py-3 px-4 text-sm">
+          <p className="mb-1.5 font-mono text-[11px] font-medium uppercase tracking-wider text-ai-accent">
+            AI Summary
+          </p>
+          <p className="text-foreground leading-relaxed">{data.summary}</p>
         </div>
       )}
 

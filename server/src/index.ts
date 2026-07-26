@@ -7,6 +7,7 @@ import * as Sentry from "@sentry/node";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./lib/auth";
 import { requireAuth } from "./middleware/require-auth";
+import { AppError, isTrackedInSentry } from "./lib/errors";
 import { boss } from "./lib/boss";
 import { startClassifyTicketWorker } from "./workers/classify-ticket-worker";
 import { startAutoResolveTicketWorker } from "./workers/auto-resolve-ticket-worker";
@@ -22,6 +23,7 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const RESEND_WEBHOOK_SECRET = process.env.RESEND_WEBHOOK_SECRET;
 const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL;
+const RESEND_RECEIVING_DOMAIN = process.env.RESEND_RECEIVING_DOMAIN;
 
 if (!DATABASE_URL) throw new Error("DATABASE_URL is required");
 if (!BETTER_AUTH_SECRET) throw new Error("BETTER_AUTH_SECRET is required");
@@ -30,6 +32,7 @@ if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY is required");
 if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY is required");
 if (!RESEND_WEBHOOK_SECRET) throw new Error("RESEND_WEBHOOK_SECRET is required");
 if (!RESEND_FROM_EMAIL) throw new Error("RESEND_FROM_EMAIL is required");
+if (!RESEND_RECEIVING_DOMAIN) throw new Error("RESEND_RECEIVING_DOMAIN is required");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -76,6 +79,13 @@ app.use("/api/dashboard", dashboardRouter);
 Sentry.setupExpressErrorHandler(app);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  if (err instanceof AppError) {
+    if (process.env.NODE_ENV === "production" && isTrackedInSentry(err.code)) {
+      Sentry.captureException(err, { level: "warning", tags: { errorCode: err.code } });
+    }
+    res.status(err.statusCode).json({ error: err.message, code: err.code });
+    return;
+  }
   console.error(err);
   res.status(500).json({ error: "Internal server error" });
 });

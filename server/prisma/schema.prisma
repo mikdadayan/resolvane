@@ -129,6 +129,7 @@ model ticketReply {
   authorId   String?
   author     user?           @relation(fields: [authorId], references: [id])
   body       String
+  messageId  String?         @unique
   createdAt  DateTime        @default(now())
 
   @@map("ticket_reply")

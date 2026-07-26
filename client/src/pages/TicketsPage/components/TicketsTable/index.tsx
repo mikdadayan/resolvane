@@ -8,7 +8,7 @@ import {
 } from "@tanstack/react-table";
 import { Link } from "react-router-dom";
 import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
-import { TicketStatus, TicketSortBy } from "@helpdesk/core";
+import { TicketSortBy } from "@helpdesk/core";
 import {
   Table,
   TableBody,
@@ -18,7 +18,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CATEGORY_LABELS, STATUS_LABELS } from "../../constants";
+import { CATEGORY_LABELS } from "../../constants";
+import StatusBadge from "../StatusBadge";
 import type { Ticket } from "@helpdesk/core";
 
 const columns: ColumnDef<Ticket>[] = [
@@ -46,17 +47,7 @@ const columns: ColumnDef<Ticket>[] = [
     id: TicketSortBy.status,
     header: "Status",
     accessorKey: "status",
-    cell: ({ row }) => (
-      <span
-        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-          row.original.status === TicketStatus.open
-            ? "bg-primary/10 text-primary"
-            : "bg-muted text-muted-foreground"
-        }`}
-      >
-        {STATUS_LABELS[row.original.status]}
-      </span>
-    ),
+    cell: ({ row }) => <StatusBadge status={row.original.status} />,
   },
   {
     id: TicketSortBy.category,

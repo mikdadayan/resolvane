@@ -51,7 +51,10 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-screen bg-background">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-2xl">Helpdesk</CardTitle>
+          <span className="mb-2 flex size-8 items-center justify-center rounded-md bg-primary">
+            <span className="font-serif text-sm font-medium text-primary-foreground">H</span>
+          </span>
+          <CardTitle className="font-serif text-2xl font-medium tracking-tight">Helpdesk</CardTitle>
           <CardDescription>Sign in to your account</CardDescription>
         </CardHeader>
         <CardContent>

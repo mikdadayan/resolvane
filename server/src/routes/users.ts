@@ -3,6 +3,7 @@ import { hashPassword } from "better-auth/crypto";
 import { createUserSchema, updateUserSchema } from "@helpdesk/core";
 import { requireAuth } from "../middleware/require-auth";
 import { requireAdmin } from "../middleware/require-admin";
+import { AppError, ErrorCode } from "../lib/errors";
 import { prisma } from "../lib/prisma";
 import { Role } from "../lib/types";
 import { validateBody } from "../lib/validation";
@@ -11,6 +12,9 @@ import { AI_AGENT_ID } from "../lib/ai-agent";
 const router = Router();
 
 const userSelect = { id: true, name: true, email: true, role: true, createdAt: true };
+
+const userNotFound = () => new AppError(ErrorCode.USER_NOT_FOUND);
+const emailTaken = () => new AppError(ErrorCode.EMAIL_TAKEN);
 
 const listUsers: RequestHandler = async (_req, res) => {
   const users = await prisma.user.findMany({
@@ -28,10 +32,7 @@ const createUser: RequestHandler = async (req, res) => {
   const { name, email, password, role } = data;
 
   const existing = await prisma.user.findFirst({ where: { email, deletedAt: null } });
-  if (existing) {
-    res.status(409).json({ error: "A user with that email already exists." });
-    return;
-  }
+  if (existing) throw emailTaken();
 
   const id = crypto.randomUUID();
   const hashedPassword = await hashPassword(password);
@@ -70,17 +71,11 @@ const updateUser: RequestHandler = async (req, res) => {
   const id = req.params["id"] as string;
 
   const existing = await prisma.user.findUnique({ where: { id } });
-  if (!existing || existing.deletedAt) {
-    res.status(404).json({ error: "User not found." });
-    return;
-  }
+  if (!existing || existing.deletedAt) throw userNotFound();
 
   if (email !== existing.email) {
     const taken = await prisma.user.findFirst({ where: { email, deletedAt: null } });
-    if (taken) {
-      res.status(409).json({ error: "A user with that email already exists." });
-      return;
-    }
+    if (taken) throw emailTaken();
   }
 
   if (password) {
@@ -104,18 +99,9 @@ const deleteUser: RequestHandler = async (req, res) => {
   const id = req.params["id"] as string;
 
   const user = await prisma.user.findUnique({ where: { id } });
-  if (!user || user.deletedAt) {
-    res.status(404).json({ error: "User not found." });
-    return;
-  }
-  if (user.role === "admin") {
-    res.status(403).json({ error: "Admin users cannot be deleted." });
-    return;
-  }
-  if (user.id === AI_AGENT_ID) {
-    res.status(403).json({ error: "The AI agent cannot be deleted." });
-    return;
-  }
+  if (!user || user.deletedAt) throw userNotFound();
+  if (user.role === "admin") throw new AppError(ErrorCode.ADMIN_UNDELETABLE);
+  if (user.id === AI_AGENT_ID) throw new AppError(ErrorCode.AI_AGENT_UNDELETABLE);
 
   await prisma.user.update({
     where: { id },

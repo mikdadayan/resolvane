@@ -35,7 +35,7 @@ export default function UsersPage() {
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">Users</h1>
+        <h1 className="font-serif text-2xl font-medium tracking-tight text-foreground">Users</h1>
         <Button onClick={() => setDialog({ type: "create" })}>
           <UserPlus className="mr-2 h-4 w-4" />
           New User

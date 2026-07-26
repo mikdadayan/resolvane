@@ -1,23 +1,30 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import type { LucideIcon } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardAction, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type StatCardProps = {
   label: string;
   value: string | number;
+  icon: LucideIcon;
   isPending: boolean;
 };
 
-export default function StatCard({ label, value, isPending }: StatCardProps) {
+export default function StatCard({ label, value, icon: Icon, isPending }: StatCardProps) {
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-sm font-normal text-muted-foreground">{label}</CardTitle>
+        <CardAction>
+          <span className="flex size-7 items-center justify-center rounded-md bg-muted text-muted-foreground">
+            <Icon className="size-3.5" />
+          </span>
+        </CardAction>
       </CardHeader>
       <CardContent>
         {isPending ? (
           <Skeleton className="h-8 w-16" />
         ) : (
-          <p className="text-2xl font-semibold text-foreground">{value}</p>
+          <p className="font-serif text-2xl font-medium tabular-nums text-foreground">{value}</p>
         )}
       </CardContent>
     </Card>
