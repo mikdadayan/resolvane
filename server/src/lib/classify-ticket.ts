@@ -13,7 +13,7 @@ function isValidCategory(value: string): value is TicketCategory {
 export async function classifyTicket(ticket: Pick<ticket, "id" | "subject" | "body">): Promise<void> {
   try {
     const { text } = await generateText({
-      model: groq("meta-llama/llama-4-scout-17b-16e-instruct"),
+      model: groq("llama-3.1-8b-instant"),
       temperature: 0,
       system:
       "You classify customer support tickets into exactly one of these categories. Reply with the category name only — no punctuation, no explanation.\n\n" +
