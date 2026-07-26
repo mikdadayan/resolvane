@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { createReplySchema, type CreateReplyInput } from "@helpdesk/core";
+import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -75,9 +76,11 @@ export default function ReplyForm({ ticketId, onSubmit, isPending, error }: Prop
         <Button
           type="button"
           variant="outline"
+          className="border-ai-accent/30 text-ai-accent hover:bg-ai-surface hover:text-ai-accent"
           disabled={!body?.trim() || polishMutation.isPending || isPending}
           onClick={() => polishMutation.mutate(body)}
         >
+          <Sparkles className="size-3.5" />
           {polishMutation.isPending ? "Polishing…" : "Polish"}
         </Button>
         <Button type="submit" disabled={!body?.trim() || isPending || polishMutation.isPending}>

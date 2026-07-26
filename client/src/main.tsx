@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@tanstack/react-query'
 import * as Sentry from '@sentry/react'
 import { reportUnexpectedError } from '@/lib/sentry'
+import { ThemeProvider } from '@/components/ThemeProvider'
 import './index.css'
 import App from './App.tsx'
 
@@ -24,11 +25,13 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Sentry.ErrorBoundary fallback={<p>Something went wrong. Please refresh the page.</p>}>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </QueryClientProvider>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </QueryClientProvider>
+      </ThemeProvider>
     </Sentry.ErrorBoundary>
   </StrictMode>,
 )

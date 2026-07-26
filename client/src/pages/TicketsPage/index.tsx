@@ -115,7 +115,7 @@ export default function TicketsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
-      <h1 className="text-2xl font-semibold text-foreground mb-6">Tickets</h1>
+      <h1 className="font-serif text-2xl font-medium tracking-tight text-foreground mb-6">Tickets</h1>
 
       <TicketsFilters
         search={search}

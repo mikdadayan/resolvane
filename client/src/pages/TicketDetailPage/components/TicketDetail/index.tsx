@@ -56,7 +56,7 @@ export default function TicketDetail({ ticket, id }: Props) {
 
   return (
     <div className="md:col-span-3 space-y-6">
-      <h1 className="text-2xl font-semibold text-foreground">{ticket.subject}</h1>
+      <h1 className="font-serif text-2xl font-medium tracking-tight text-foreground">{ticket.subject}</h1>
 
       <TicketInfo ticket={ticket} />
 
