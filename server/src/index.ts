@@ -7,6 +7,7 @@ import * as Sentry from "@sentry/node";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./lib/auth";
 import { requireAuth } from "./middleware/require-auth";
+import { AppError, isTrackedInSentry } from "./lib/errors";
 import { boss } from "./lib/boss";
 import { startClassifyTicketWorker } from "./workers/classify-ticket-worker";
 import { startAutoResolveTicketWorker } from "./workers/auto-resolve-ticket-worker";
@@ -76,6 +77,13 @@ app.use("/api/dashboard", dashboardRouter);
 Sentry.setupExpressErrorHandler(app);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  if (err instanceof AppError) {
+    if (process.env.NODE_ENV === "production" && isTrackedInSentry(err.code)) {
+      Sentry.captureException(err, { level: "warning", tags: { errorCode: err.code } });
+    }
+    res.status(err.statusCode).json({ error: err.message, code: err.code });
+    return;
+  }
   console.error(err);
   res.status(500).json({ error: "Internal server error" });
 });

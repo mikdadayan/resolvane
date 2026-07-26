@@ -11,6 +11,7 @@ import { groq } from "@ai-sdk/groq";
 import { generateText } from "ai";
 import { z } from "zod";
 import { requireAuth } from "../middleware/require-auth";
+import { AppError, ErrorCode, ERROR_DEFINITIONS } from "../lib/errors";
 import { prisma } from "../lib/prisma";
 import { replySelect } from "../lib/reply-select";
 import { ticketSelect } from "../lib/ticket-select";
@@ -20,6 +21,8 @@ import { TicketStatus, type TicketCategory } from "../generated/prisma/enums";
 import type { Prisma } from "../generated/prisma/client";
 
 const router = Router();
+
+const ticketNotFound = () => new AppError(ErrorCode.TICKET_NOT_FOUND);
 
 const listTickets: RequestHandler = async (req, res) => {
   const query = validateQuery(listTicketsQuerySchema, req.query, res);
@@ -53,7 +56,7 @@ const listTickets: RequestHandler = async (req, res) => {
 };
 
 const getTicket: RequestHandler<{ id: string }> = async (req, res) => {
-  const id = validateId(req.params.id, res, "Ticket not found");
+  const id = validateId(req.params.id, res, ERROR_DEFINITIONS[ErrorCode.TICKET_NOT_FOUND].message);
   if (!id) return;
 
   const ticket = await prisma.ticket.findFirst({
@@ -61,35 +64,26 @@ const getTicket: RequestHandler<{ id: string }> = async (req, res) => {
     select: ticketSelect,
   });
 
-  if (!ticket) {
-    res.status(404).json({ error: "Ticket not found" });
-    return;
-  }
+  if (!ticket) throw ticketNotFound();
 
   res.json(ticket);
 };
 
 export const assignTicket: RequestHandler<{ id: string }> = async (req, res) => {
-  const id = validateId(req.params.id, res, "Ticket not found");
+  const id = validateId(req.params.id, res, ERROR_DEFINITIONS[ErrorCode.TICKET_NOT_FOUND].message);
   if (!id) return;
 
   const data = validateBody(assignTicketSchema, req.body, res);
   if (!data) return;
 
   const ticket = await prisma.ticket.findFirst({ where: { id, deletedAt: null } });
-  if (!ticket) {
-    res.status(404).json({ error: "Ticket not found" });
-    return;
-  }
+  if (!ticket) throw ticketNotFound();
 
   if (data.assignedToId) {
     const assignee = await prisma.user.findFirst({
       where: { id: data.assignedToId, deletedAt: null },
     });
-    if (!assignee) {
-      res.status(400).json({ error: "Assignee not found" });
-      return;
-    }
+    if (!assignee) throw new AppError(ErrorCode.ASSIGNEE_NOT_FOUND);
   }
 
   const updated = await prisma.ticket.update({
@@ -102,17 +96,14 @@ export const assignTicket: RequestHandler<{ id: string }> = async (req, res) => 
 };
 
 export const updateTicket: RequestHandler<{ id: string }> = async (req, res) => {
-  const id = validateId(req.params.id, res, "Ticket not found");
+  const id = validateId(req.params.id, res, ERROR_DEFINITIONS[ErrorCode.TICKET_NOT_FOUND].message);
   if (!id) return;
 
   const data = validateBody(updateTicketSchema, req.body, res);
   if (!data) return;
 
   const ticket = await prisma.ticket.findFirst({ where: { id, deletedAt: null } });
-  if (!ticket) {
-    res.status(404).json({ error: "Ticket not found" });
-    return;
-  }
+  if (!ticket) throw ticketNotFound();
 
   // Only stamp resolvedAt on a genuine transition into "resolved" — never overwrite it just
   // because an already-resolved ticket is being edited for an unrelated reason (e.g. category).
@@ -133,14 +124,11 @@ export const updateTicket: RequestHandler<{ id: string }> = async (req, res) => 
 };
 
 const listReplies: RequestHandler<{ id: string }> = async (req, res) => {
-  const id = validateId(req.params.id, res, "Ticket not found");
+  const id = validateId(req.params.id, res, ERROR_DEFINITIONS[ErrorCode.TICKET_NOT_FOUND].message);
   if (!id) return;
 
   const ticket = await prisma.ticket.findFirst({ where: { id, deletedAt: null } });
-  if (!ticket) {
-    res.status(404).json({ error: "Ticket not found" });
-    return;
-  }
+  if (!ticket) throw ticketNotFound();
 
   const replies = await prisma.ticketReply.findMany({
     where: { ticketId: id },
@@ -152,17 +140,14 @@ const listReplies: RequestHandler<{ id: string }> = async (req, res) => {
 };
 
 export const createReply: RequestHandler<{ id: string }> = async (req, res) => {
-  const id = validateId(req.params.id, res, "Ticket not found");
+  const id = validateId(req.params.id, res, ERROR_DEFINITIONS[ErrorCode.TICKET_NOT_FOUND].message);
   if (!id) return;
 
   const data = validateBody(createReplySchema, req.body, res);
   if (!data) return;
 
   const ticket = await prisma.ticket.findFirst({ where: { id, deletedAt: null } });
-  if (!ticket) {
-    res.status(404).json({ error: "Ticket not found" });
-    return;
-  }
+  if (!ticket) throw ticketNotFound();
 
   try {
     await sendReplyEmail({
@@ -173,8 +158,7 @@ export const createReply: RequestHandler<{ id: string }> = async (req, res) => {
     });
   } catch (err) {
     console.error(`Failed to send reply email for ticket ${id}:`, err);
-    res.status(502).json({ error: "Failed to send the reply email. The reply was not saved." });
-    return;
+    throw new AppError(ErrorCode.REPLY_EMAIL_FAILED);
   }
 
   const reply = await prisma.ticketReply.create({
@@ -191,17 +175,14 @@ export const createReply: RequestHandler<{ id: string }> = async (req, res) => {
 };
 
 const summarizeTicket: RequestHandler<{ id: string }> = async (req, res) => {
-  const id = validateId(req.params.id, res, "Ticket not found");
+  const id = validateId(req.params.id, res, ERROR_DEFINITIONS[ErrorCode.TICKET_NOT_FOUND].message);
   if (!id) return;
 
   const ticket = await prisma.ticket.findFirst({
     where: { id, deletedAt: null },
     select: { subject: true, body: true, senderName: true, status: true },
   });
-  if (!ticket) {
-    res.status(404).json({ error: "Ticket not found" });
-    return;
-  }
+  if (!ticket) throw ticketNotFound();
 
   const replies = await prisma.ticketReply.findMany({
     where: { ticketId: id },
@@ -237,17 +218,14 @@ const summarizeTicket: RequestHandler<{ id: string }> = async (req, res) => {
 };
 
 const polishReply: RequestHandler<{ id: string }> = async (req, res) => {
-  const id = validateId(req.params.id, res, "Ticket not found");
+  const id = validateId(req.params.id, res, ERROR_DEFINITIONS[ErrorCode.TICKET_NOT_FOUND].message);
   if (!id) return;
 
   const data = validateBody(z.object({ body: z.string().min(1) }), req.body, res);
   if (!data) return;
 
   const ticket = await prisma.ticket.findFirst({ where: { id, deletedAt: null } });
-  if (!ticket) {
-    res.status(404).json({ error: "Ticket not found" });
-    return;
-  }
+  if (!ticket) throw ticketNotFound();
 
   const { text } = await generateText({
     model: groq("llama-3.1-8b-instant"),

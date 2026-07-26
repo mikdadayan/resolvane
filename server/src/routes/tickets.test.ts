@@ -1,5 +1,6 @@
 import { test, expect, mock, beforeEach } from "bun:test";
 import type { Request, Response } from "express";
+import { ErrorCode } from "../lib/errors";
 import { replySelect } from "../lib/reply-select";
 import { ticketSelect } from "../lib/ticket-select";
 
@@ -66,13 +67,17 @@ test("assignTicket returns 404 when the ticket does not exist", async () => {
   ticketFindFirst.mockResolvedValue(null);
   const res = makeRes();
 
-  await assignTicket(makeReq(OTHER_TICKET_ID, { assignedToId: "user-1" }), res, () => {});
+  await expect(
+    assignTicket(makeReq(OTHER_TICKET_ID, { assignedToId: "user-1" }), res, () => {})
+  ).rejects.toMatchObject({
+    statusCode: 404,
+    code: ErrorCode.TICKET_NOT_FOUND,
+    message: "Ticket not found",
+  });
 
   expect(ticketFindFirst).toHaveBeenCalledWith({
     where: { id: OTHER_TICKET_ID, deletedAt: null },
   });
-  expect(res.status).toHaveBeenCalledWith(404);
-  expect(res.json).toHaveBeenCalledWith({ error: "Ticket not found" });
   expect(userFindFirst).not.toHaveBeenCalled();
   expect(ticketUpdate).not.toHaveBeenCalled();
 });
@@ -82,13 +87,17 @@ test("assignTicket returns 400 when the assignee does not exist", async () => {
   userFindFirst.mockResolvedValue(null);
   const res = makeRes();
 
-  await assignTicket(makeReq(TICKET_ID, { assignedToId: "missing-user" }), res, () => {});
+  await expect(
+    assignTicket(makeReq(TICKET_ID, { assignedToId: "missing-user" }), res, () => {})
+  ).rejects.toMatchObject({
+    statusCode: 400,
+    code: ErrorCode.ASSIGNEE_NOT_FOUND,
+    message: "Assignee not found",
+  });
 
   expect(userFindFirst).toHaveBeenCalledWith({
     where: { id: "missing-user", deletedAt: null },
   });
-  expect(res.status).toHaveBeenCalledWith(400);
-  expect(res.json).toHaveBeenCalledWith({ error: "Assignee not found" });
   expect(ticketUpdate).not.toHaveBeenCalled();
 });
 
@@ -148,10 +157,14 @@ test("updateTicket returns 404 when the ticket does not exist", async () => {
   ticketFindFirst.mockResolvedValue(null);
   const res = makeRes();
 
-  await updateTicket(makeReq(OTHER_TICKET_ID, { status: "resolved" }), res, () => {});
+  await expect(
+    updateTicket(makeReq(OTHER_TICKET_ID, { status: "resolved" }), res, () => {})
+  ).rejects.toMatchObject({
+    statusCode: 404,
+    code: ErrorCode.TICKET_NOT_FOUND,
+    message: "Ticket not found",
+  });
 
-  expect(res.status).toHaveBeenCalledWith(404);
-  expect(res.json).toHaveBeenCalledWith({ error: "Ticket not found" });
   expect(ticketUpdate).not.toHaveBeenCalled();
 });
 
@@ -247,10 +260,14 @@ test("createReply returns 404 when the ticket does not exist", async () => {
   ticketFindFirst.mockResolvedValue(null);
   const res = makeRes();
 
-  await createReply(makeReq(OTHER_TICKET_ID, { body: "Thanks for reaching out" }), res, () => {});
+  await expect(
+    createReply(makeReq(OTHER_TICKET_ID, { body: "Thanks for reaching out" }), res, () => {})
+  ).rejects.toMatchObject({
+    statusCode: 404,
+    code: ErrorCode.TICKET_NOT_FOUND,
+    message: "Ticket not found",
+  });
 
-  expect(res.status).toHaveBeenCalledWith(404);
-  expect(res.json).toHaveBeenCalledWith({ error: "Ticket not found" });
   expect(ticketReplyCreate).not.toHaveBeenCalled();
 });
 
