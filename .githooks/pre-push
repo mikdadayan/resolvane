@@ -1,9 +1,35 @@
 #!/bin/sh
-# Blocks a push if lint, unit/component, API integration, or browser tests fail.
+# Guards committed migrations before running lint and all test suites.
 
 set -eu
 
 cd "$(git rev-parse --show-toplevel)"
+
+echo "Checking outgoing migration changes..."
+while read -r local_ref local_oid remote_ref remote_oid; do
+  case "$local_oid" in
+    *[!0]*) ;;
+    *) continue ;; # Deleted branch.
+  esac
+
+  base="$remote_oid"
+  case "$remote_oid" in
+    *[!0]*) ;;
+    *)
+      # New branches are compared with where they diverged from master.
+      base=$(git merge-base "$local_oid" "${1:-origin}/master")
+      ;;
+  esac
+
+  changed=$(git diff --name-status --no-renames --diff-filter=MD \
+    "$base" "$local_oid" -- server/prisma/migrations)
+  if [ -n "$changed" ]; then
+    echo "Error: pushing $local_ref modifies or deletes existing migrations:"
+    printf '%s\n' "$changed"
+    echo "Create a new migration instead of modifying an existing one."
+    exit 1
+  fi
+done
 
 echo "Running lint..."
 bun run lint
