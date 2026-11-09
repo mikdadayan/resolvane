@@ -7,7 +7,7 @@ import {
   type TicketsByAssignee,
   type TicketsByStatus,
   type TicketsPerDay,
-} from "@helpdesk/core";
+} from "@resolvane/core";
 import { requireAuth } from "../middleware/require-auth";
 import { prisma } from "../lib/prisma";
 import { TicketStatus, type TicketCategory } from "../generated/prisma/enums";

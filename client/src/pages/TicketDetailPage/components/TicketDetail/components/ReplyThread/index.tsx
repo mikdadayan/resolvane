@@ -1,4 +1,4 @@
-import { ReplySenderType } from "@helpdesk/core";
+import { ReplySenderType } from "@resolvane/core";
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Reply } from "../../../../types";

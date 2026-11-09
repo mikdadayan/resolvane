@@ -2,7 +2,7 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { renderWithQuery } from "@/test/utils";
-import { Role } from "@helpdesk/core";
+import { Role } from "@resolvane/core";
 import UsersTable from "./UsersTable";
 import type { User } from "../types";
 

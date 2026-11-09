@@ -1,6 +1,6 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { authClient } from "@/lib/auth-client";
-import { Role } from "@helpdesk/core";
+import { Role } from "@resolvane/core";
 
 export default function AdminRoute() {
   const { data: session, isPending } = authClient.useSession();

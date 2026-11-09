@@ -6,7 +6,7 @@ import {
   updateTicketSchema,
   ReplySenderType,
   TICKETS_PAGE_SIZE,
-} from "@helpdesk/core";
+} from "@resolvane/core";
 import { groq } from "@ai-sdk/groq";
 import { generateText } from "ai";
 import { z } from "zod";

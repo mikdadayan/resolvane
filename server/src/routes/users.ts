@@ -1,6 +1,6 @@
 import { Router, type RequestHandler } from "express";
 import { hashPassword } from "better-auth/crypto";
-import { createUserSchema, updateUserSchema } from "@helpdesk/core";
+import { createUserSchema, updateUserSchema } from "@resolvane/core";
 import { requireAuth } from "../middleware/require-auth";
 import { requireAdmin } from "../middleware/require-admin";
 import { AppError, ErrorCode } from "../lib/errors";

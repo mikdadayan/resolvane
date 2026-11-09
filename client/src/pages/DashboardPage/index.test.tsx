@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { vi } from "vitest";
 import { renderWithQuery } from "@/test/utils";
-import type { DashboardStats } from "@helpdesk/core";
+import type { DashboardStats } from "@resolvane/core";
 import DashboardPage from ".";
 
 const BASE_URL = "http://localhost:3000";

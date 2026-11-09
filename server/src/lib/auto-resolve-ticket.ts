@@ -2,7 +2,7 @@ import { groq } from "@ai-sdk/groq";
 import { generateObject } from "ai";
 import { z } from "zod";
 import { prisma } from "./prisma";
-import { ReplySenderType, TicketStatus } from "@helpdesk/core";
+import { ReplySenderType, TicketStatus } from "@resolvane/core";
 import type { ticket } from "../generated/prisma/client";
 import { AI_AGENT_ID } from "./ai-agent";
 import { sendReplyEmail } from "./send-reply-email";

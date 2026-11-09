@@ -104,7 +104,7 @@ test.describe("POST /api/webhooks/inbound-email", () => {
         email_id: randomUUID(),
         created_at: new Date().toISOString(),
         from: "Jane Customer <customer@example.com>",
-        to: ["support@helpdesk.example"],
+        to: ["support@resolvane.example"],
         subject: "Cannot log in to my account",
       },
     };

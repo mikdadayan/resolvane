@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "helpdesk",
+      "name": "resolvane",
       "devDependencies": {
         "@playwright/test": "^1.60.0",
         "@types/bun": "^1.3.14",

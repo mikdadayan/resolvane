@@ -1,4 +1,4 @@
-import type { Role } from "@helpdesk/core";
+import type { Role } from "@resolvane/core";
 
 export type User = {
   id: string;

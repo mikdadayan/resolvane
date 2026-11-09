@@ -24,7 +24,7 @@ export default function StatCard({ label, value, icon: Icon, isPending }: StatCa
         {isPending ? (
           <Skeleton className="h-8 w-16" />
         ) : (
-          <p className="font-serif text-2xl font-medium tabular-nums text-foreground">{value}</p>
+          <p className="font-sans text-3xl font-semibold leading-none tracking-tight tabular-nums text-foreground">{value}</p>
         )}
       </CardContent>
     </Card>

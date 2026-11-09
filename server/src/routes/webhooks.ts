@@ -1,5 +1,5 @@
 import { Router, type RequestHandler } from "express";
-import { ReplySenderType } from "@helpdesk/core";
+import { ReplySenderType } from "@resolvane/core";
 import { requireWebhookSecret } from "../middleware/require-webhook-secret";
 import { AppError, ErrorCode } from "../lib/errors";
 import { prisma } from "../lib/prisma";

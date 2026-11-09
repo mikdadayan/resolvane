@@ -8,7 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "@helpdesk/core": path.resolve(__dirname, "../core/src/index.ts"),
+      "@resolvane/core": path.resolve(__dirname, "../core/src/index.ts"),
     },
   },
   test: {

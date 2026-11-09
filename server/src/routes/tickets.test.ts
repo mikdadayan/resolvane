@@ -11,6 +11,9 @@ const ticketFindFirst = mock();
 const ticketUpdate = mock();
 const userFindFirst = mock();
 const ticketReplyCreate = mock();
+const sendReplyEmail = mock(async () => {});
+
+mock.module("../lib/send-reply-email", () => ({ sendReplyEmail }));
 
 mock.module("../lib/prisma", () => ({
   prisma: {
@@ -42,6 +45,7 @@ beforeEach(() => {
   ticketUpdate.mockReset();
   userFindFirst.mockReset();
   ticketReplyCreate.mockReset();
+  sendReplyEmail.mockClear();
 });
 
 test("assignTicket returns 404 when the id is not a valid uuid", async () => {

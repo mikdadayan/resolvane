@@ -2,8 +2,8 @@ import { useState } from "react";
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
 import { Cell, Pie, PieChart } from "recharts";
-import { DashboardRange, TicketCategory } from "@helpdesk/core";
-import type { TicketsByAssignee } from "@helpdesk/core";
+import { DashboardRange, TicketCategory } from "@resolvane/core";
+import type { TicketsByAssignee } from "@resolvane/core";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {

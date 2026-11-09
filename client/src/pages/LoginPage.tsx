@@ -52,9 +52,9 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <span className="mb-2 flex size-8 items-center justify-center rounded-md bg-primary">
-            <span className="font-serif text-sm font-medium text-primary-foreground">H</span>
+            <span className="font-serif text-sm font-medium text-primary-foreground">R</span>
           </span>
-          <CardTitle className="font-serif text-2xl font-medium tracking-tight">Helpdesk</CardTitle>
+          <CardTitle className="font-serif text-2xl font-medium tracking-tight">Resolvane</CardTitle>
           <CardDescription>Sign in to your account</CardDescription>
         </CardHeader>
         <CardContent>

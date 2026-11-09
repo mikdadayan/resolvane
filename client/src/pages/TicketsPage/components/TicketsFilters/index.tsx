@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { TicketStatus, TicketCategory, VISIBLE_TICKET_STATUSES } from "@helpdesk/core";
+import { TicketStatus, TicketCategory, VISIBLE_TICKET_STATUSES } from "@resolvane/core";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -41,17 +41,17 @@ export default function TicketsFilters({
   }, [searchInput]);
 
   return (
-    <div className="flex items-center gap-3 mb-4">
+    <div className="flex flex-wrap items-center gap-3 border-b border-border bg-muted/30 p-4">
       <Input
         placeholder="Search tickets..."
         value={searchInput}
         onChange={(e) => setSearchInput(e.target.value)}
-        className="max-w-xs"
+        className="h-10 w-full bg-background sm:max-w-sm"
         aria-label="Search tickets"
       />
 
       <Select value={status} onValueChange={onStatusChange}>
-        <SelectTrigger aria-label="Filter by status" className="w-40">
+        <SelectTrigger aria-label="Filter by status" className="h-10 w-full bg-background sm:w-40">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
@@ -65,7 +65,7 @@ export default function TicketsFilters({
       </Select>
 
       <Select value={category} onValueChange={onCategoryChange}>
-        <SelectTrigger aria-label="Filter by category" className="w-48">
+        <SelectTrigger aria-label="Filter by category" className="h-10 w-full bg-background sm:w-48">
           <SelectValue placeholder="Category" />
         </SelectTrigger>
         <SelectContent>

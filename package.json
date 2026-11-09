@@ -1,5 +1,5 @@
 {
-  "name": "helpdesk",
+  "name": "resolvane",
   "private": true,
   "scripts": {
     "dev:server": "cd server && bun dev",

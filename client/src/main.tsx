@@ -7,6 +7,7 @@ import { reportUnexpectedError } from '@/lib/sentry'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import './index.css'
 import App from './App.tsx'
+import { Toaster } from '@/components/ui/sonner'
 
 if (import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({
@@ -29,6 +30,7 @@ createRoot(document.getElementById('root')!).render(
         <QueryClientProvider client={queryClient}>
           <BrowserRouter>
             <App />
+            <Toaster />
           </BrowserRouter>
         </QueryClientProvider>
       </ThemeProvider>

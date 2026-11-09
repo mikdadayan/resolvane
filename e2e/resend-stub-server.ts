@@ -19,6 +19,11 @@ Bun.serve({
   port: PORT,
   fetch(req) {
     const url = new URL(req.url);
+    // Reply delivery stays local during full-stack tests.
+    if (url.pathname === "/emails" && req.method === "POST") {
+      return Response.json({ id: crypto.randomUUID() });
+    }
+
     const match = url.pathname.match(/^\/emails\/receiving\/([^/]+)$/);
 
     if (!match) {

@@ -1,4 +1,4 @@
-# Helpdesk — Project Context
+# Resolvane — Project Context
 
 An AI-powered ticket management system. Support emails arrive as tickets, automatically classified and summarized by Claude. Agents review AI-suggested replies before sending.
 
@@ -35,8 +35,8 @@ cd client && bun dev
 - **No `tailwind.config.js`**: v4 is CSS-first; all theme config lives in `src/index.css` under `@theme inline`
 - **Pages**: one file per page under `src/pages/`, one file per component under `src/components/`
 - **Data fetching**: always use **axios** for HTTP requests and **TanStack Query** (`useQuery`, `useMutation`) for server state — never use raw `fetch` or `useEffect` for data fetching
-- **Forms**: always use **react-hook-form** with **`zodResolver`** and a **zod** schema — never manage form state with `useState`. Import the schema from `@helpdesk/core` (see below), infer the type with `z.infer<typeof schema>`, and wire up with `useForm<FormValues>({ resolver: zodResolver(schema) })`. Display field errors from `formState.errors` inline beneath each input.
-- **Role enum**: always import `Role` from `@helpdesk/core` and use `Role.admin` / `Role.agent` instead of the raw strings `"admin"` / `"agent"`. Never hard-code role strings anywhere in the client — not in conditionals, default values, `SelectItem` values, mock data, or type annotations.
+- **Forms**: always use **react-hook-form** with **`zodResolver`** and a **zod** schema — never manage form state with `useState`. Import the schema from `@resolvane/core` (see below), infer the type with `z.infer<typeof schema>`, and wire up with `useForm<FormValues>({ resolver: zodResolver(schema) })`. Display field errors from `formState.errors` inline beneath each input.
+- **Role enum**: always import `Role` from `@resolvane/core` and use `Role.admin` / `Role.agent` instead of the raw strings `"admin"` / `"agent"`. Never hard-code role strings anywhere in the client — not in conditionals, default values, `SelectItem` values, mock data, or type annotations.
 
 ## Server file layout
 
@@ -210,7 +210,7 @@ Never write e2e tests for: rendering, display logic, component states, API call 
 
 ## Shared code (`core/`)
 
-The `core/` package (`@helpdesk/core`) holds zod schemas that are used on **both** the client and server. It has no build step — both sides import TypeScript source directly via path aliases.
+The `core/` package (`@resolvane/core`) holds zod schemas that are used on **both** the client and server. It has no build step — both sides import TypeScript source directly via path aliases.
 
 ```
 core/src/
@@ -221,7 +221,7 @@ core/src/
 
 **Rules:**
 - Any zod schema shared between client and server lives in `core/src/schemas/`.
-- Import as `import { mySchema, type MyInput } from "@helpdesk/core"` — never duplicate schemas in client or server.
+- Import as `import { mySchema, type MyInput } from "@resolvane/core"` — never duplicate schemas in client or server.
 - The path alias is configured in `client/tsconfig.app.json` + `client/vite.config.ts` (for the client) and `server/tsconfig.json` (for Bun). No install step needed.
 - `core` has no runtime dependencies — only `zod` as a peer dependency (already installed in both client and server).
 
@@ -230,3 +230,7 @@ core/src/
 Always use **context7** (`mcp__context7`) to fetch up-to-date docs before using any library. Do not rely on training data for API syntax or version-specific behavior. Resolve library ID first, then query docs.
 
 Libraries in use: `express`, `react`, `react-router-dom`, `prisma`, `tailwindcss`, `@anthropic-ai/sdk`, `better-auth`, `cors`, `shadcn`, `lucide-react`, `react-hook-form`, `zod`.
+
+## Resolvane brand palette
+
+Use deep teal primary actions (`#0F766E` in light mode, `#5EEAD4` in dark mode), cool slate neutrals, and mint AI surfaces through the semantic tokens in `client/src/index.css`. Keep status and destructive colors semantic and distinct from branding. The favicon uses the light primary teal.

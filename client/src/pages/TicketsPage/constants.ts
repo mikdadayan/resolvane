@@ -1,4 +1,4 @@
-import { TicketStatus, TicketCategory } from "@helpdesk/core";
+import { TicketStatus, TicketCategory } from "@resolvane/core";
 
 export const STATUS_LABELS: Record<TicketStatus, string> = {
   [TicketStatus.new]: "New",

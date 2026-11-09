@@ -58,26 +58,37 @@ test.describe("Tickets page — access control", () => {
 });
 
 test.describe("Tickets page — seeded ticket data", () => {
-  test("a ticket seeded via the inbound webhook appears in the table with expected defaults", async ({
+  test("a webhook ticket opened and unassigned by an agent appears in the table", async ({
     page,
     request,
   }) => {
     const uniqueSubject = `E2E Test Subject ${randomUUID()}`;
-    await seedTicketViaWebhook(request, {
+    const ticket = await seedTicketViaWebhook(request, {
       subject: uniqueSubject,
       from: "E2E Customer <e2e-customer@example.com>",
     });
 
     await loginAs(page, "agent");
-    await page.goto("/tickets");
-    await expect(page).toHaveURL("/tickets");
+    // Move out of the worker's claimable "new" state before clearing its assignment.
+    // In-flight auto-resolution only updates tickets still in "processing".
+    const apiUrl = process.env.BETTER_AUTH_URL ?? "http://localhost:3001";
+    const opened = await page.request.patch(`${apiUrl}/api/tickets/${ticket.id}`, {
+      data: { status: "open" },
+    });
+    expect(opened.ok()).toBeTruthy();
+    const unassigned = await page.request.patch(`${apiUrl}/api/tickets/${ticket.id}/assign`, {
+      data: { assignedToId: null },
+    });
+    expect(unassigned.ok()).toBeTruthy();
+    await page.goto(`/tickets?search=${encodeURIComponent(uniqueSubject)}`);
+    await expect(page).toHaveURL(/\/tickets\?search=/);
 
     const row = page.getByRole("row", { name: new RegExp(uniqueSubject) });
     await expect(row).toBeVisible();
 
     await expect(row.getByText(uniqueSubject)).toBeVisible();
     await expect(row.getByText(/E2E Customer.*e2e-customer@example\.com/)).toBeVisible();
-    await expect(row.getByText("open", { exact: true })).toBeVisible();
+    await expect(row.getByText("Open", { exact: true })).toBeVisible();
     await expect(row.getByText("Uncategorized", { exact: true })).toBeVisible();
     await expect(row.getByText("Unassigned", { exact: true })).toBeVisible();
   });

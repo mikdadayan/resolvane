@@ -1,5 +1,5 @@
-import type { ReplySenderType } from "@helpdesk/core";
-import type { Ticket } from "@helpdesk/core";
+import type { ReplySenderType } from "@resolvane/core";
+import type { Ticket } from "@resolvane/core";
 
 export type TicketDetail = Ticket & {
   body: string;

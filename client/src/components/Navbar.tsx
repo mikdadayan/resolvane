@@ -2,7 +2,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Ticket, Users, Moon, Sun } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { useTheme } from "@/lib/theme";
-import { Role } from "@helpdesk/core";
+import { Role } from "@resolvane/core";
 
 const navLinkClassName = ({ isActive }: { isActive: boolean }) =>
   `inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors ${
@@ -27,10 +27,10 @@ export default function Navbar() {
       <div className="flex items-center gap-2">
         <Link to="/" className="flex items-center gap-2 mr-5 hover:opacity-80 transition-opacity">
           <span className="flex size-6 items-center justify-center rounded-md bg-primary">
-            <span className="font-serif text-xs font-medium text-primary-foreground">H</span>
+            <span className="font-serif text-xs font-medium text-primary-foreground">R</span>
           </span>
           <span className="font-serif text-lg font-medium tracking-tight text-foreground">
-            Helpdesk
+            Resolvane
           </span>
         </Link>
         {session && (

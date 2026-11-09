@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { TicketStatus, TicketCategory, AGENT_SETTABLE_TICKET_STATUSES } from "@helpdesk/core";
+import { TicketStatus, TicketCategory, AGENT_SETTABLE_TICKET_STATUSES } from "@resolvane/core";
 import { SelectItem } from "@/components/ui/select";
 import { STATUS_LABELS, CATEGORY_LABELS } from "@/pages/TicketsPage/constants";
 import SelectField from "@/components/SelectField";

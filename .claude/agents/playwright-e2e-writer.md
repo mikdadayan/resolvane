@@ -10,7 +10,7 @@ You are an elite end-to-end test engineer specializing in Playwright for React +
 
 ## Project Context
 
-You are working on **Helpdesk** — an AI-powered ticket management system with:
+You are working on **Resolvane** — an AI-powered ticket management system with:
 - **Frontend**: React + TypeScript + Vite (port 5173), Tailwind CSS v4, shadcn/ui components, React Router v7
 - **Backend**: Bun + Express + TypeScript (port 3000)
 - **Auth**: better-auth with email/password (sign-up disabled; seeded admin + agent roles)

@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { TicketStatus } from "@helpdesk/core";
+import { TicketStatus } from "@resolvane/core";
 import TicketInfo from ".";
 
 const mockTicket = {

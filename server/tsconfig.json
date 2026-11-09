@@ -2,7 +2,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@helpdesk/core": ["../core/src/index.ts"]
+      "@resolvane/core": ["../core/src/index.ts"]
     },
 
     // Environment setup & latest features

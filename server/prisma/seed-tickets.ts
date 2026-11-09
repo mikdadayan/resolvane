@@ -8,7 +8,7 @@
 
 import { prisma } from "../src/lib/prisma";
 import { TicketCategory } from "../src/generated/prisma/enums";
-import { AGENT_SETTABLE_TICKET_STATUSES } from "@helpdesk/core";
+import { AGENT_SETTABLE_TICKET_STATUSES } from "@resolvane/core";
 
 const SUBJECTS = [
   "Cannot log in to my account",

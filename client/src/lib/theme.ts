@@ -7,11 +7,13 @@ export type ThemeContextValue = {
   toggleTheme: () => void;
 };
 
-export const STORAGE_KEY = "helpdesk-theme";
+export const STORAGE_KEY = "resolvane-theme";
 
 export const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function getInitialTheme(): Theme {
+  const stored = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("helpdesk-theme");
+  if (stored === "light" || stored === "dark") return stored;
   return document.documentElement.classList.contains("dark") ? "dark" : "light";
 }
 

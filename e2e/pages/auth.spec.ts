@@ -1,5 +1,5 @@
 /**
- * Authentication end-to-end tests for the Helpdesk application.
+ * Authentication end-to-end tests for the Resolvane application.
  *
  * Covers full-stack flows only — rendering, validation, and loading states
  * are handled by LoginPage.test.tsx (component tests).

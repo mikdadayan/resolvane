@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { type CreateReplyInput } from "@helpdesk/core";
+import { type CreateReplyInput } from "@resolvane/core";
 import type { Reply, TicketDetail as TicketDetailType } from "../../types";
 import TicketInfo from "./components/TicketInfo";
 import TicketSummary from "./components/TicketSummary";

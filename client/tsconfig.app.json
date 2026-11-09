@@ -4,7 +4,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@helpdesk/core": ["../core/src/index.ts"]
+      "@resolvane/core": ["../core/src/index.ts"]
     },
     "target": "es2023",
     "lib": ["ES2023", "DOM"],

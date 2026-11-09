@@ -1,4 +1,4 @@
-import { TicketStatus } from "@helpdesk/core";
+import { TicketStatus } from "@resolvane/core";
 import { STATUS_LABELS } from "../../constants";
 
 type Props = {

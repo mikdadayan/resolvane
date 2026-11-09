@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "@helpdesk/core",
+      "name": "@resolvane/core",
       "peerDependencies": {
         "zod": "^4.4.3",
       },

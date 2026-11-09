@@ -2,14 +2,14 @@ import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import type { OnChangeFn, SortingState } from "@tanstack/react-table";
-import { TicketStatus, TicketCategory, TicketSortBy, TICKETS_PAGE_SIZE } from "@helpdesk/core";
+import { TicketStatus, TicketCategory, TicketSortBy, TICKETS_PAGE_SIZE } from "@resolvane/core";
 import TicketsTable from "./components/TicketsTable";
 import TicketsFilters, {
   STATUS_FILTER_ALL,
   CATEGORY_FILTER_ALL,
 } from "./components/TicketsFilters";
 import TicketsPagination from "./components/TicketsPagination";
-import type { Ticket } from "@helpdesk/core";
+import type { Ticket } from "@resolvane/core";
 
 type ListTicketsParams = {
   sortBy: TicketSortBy;
@@ -115,7 +115,16 @@ export default function TicketsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
-      <h1 className="font-serif text-2xl font-medium tracking-tight text-foreground mb-6">Tickets</h1>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-primary">Support workspace</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">Tickets</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Review requests, follow conversations, and keep support moving.</p>
+        </div>
+        {data && <span className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium tabular-nums text-foreground">{data.total} matching tickets</span>}
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
 
       <TicketsFilters
         search={search}
@@ -135,7 +144,10 @@ export default function TicketsPage() {
         onSortingChange={handleSortingChange}
       />
 
-      <TicketsPagination page={page} pageCount={pageCount} onPageChange={handlePageChange} />
+      <div className="border-t border-border px-4 pb-4">
+        <TicketsPagination page={page} pageCount={pageCount} onPageChange={handlePageChange} />
+      </div>
+      </div>
     </div>
   );
 }

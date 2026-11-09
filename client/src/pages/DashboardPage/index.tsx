@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
 import { Ticket, CircleDot, Sparkles, TrendingUp, Clock } from "lucide-react";
-import type { DashboardStats } from "@helpdesk/core";
+import type { DashboardStats } from "@resolvane/core";
 import StatCard from "./components/StatCard";
 import TicketsPerDayChart from "./components/TicketsPerDayChart";
 import TicketsByStatusChart from "./components/TicketsByStatusChart";

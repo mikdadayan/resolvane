@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { ReplySenderType } from "@helpdesk/core";
+import { ReplySenderType } from "@resolvane/core";
 import ReplyThread from ".";
 
 const mockReplies = [

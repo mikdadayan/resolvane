@@ -1,5 +1,5 @@
 import { Pencil, Trash2 } from "lucide-react";
-import { Role } from "@helpdesk/core";
+import { Role } from "@resolvane/core";
 import {
   Table,
   TableBody,

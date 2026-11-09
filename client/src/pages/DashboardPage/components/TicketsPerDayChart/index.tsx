@@ -7,7 +7,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import type { TicketsPerDay } from "@helpdesk/core";
+import type { TicketsPerDay } from "@resolvane/core";
 
 type TicketsPerDayChartProps = {
   data: TicketsPerDay[] | undefined;

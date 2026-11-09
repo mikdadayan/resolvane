@@ -1,6 +1,6 @@
 import { Controller } from "react-hook-form";
 import type { Control, FieldErrors, UseFormRegister } from "react-hook-form";
-import { Role, type CreateUserInput } from "@helpdesk/core";
+import { Role, type CreateUserInput } from "@resolvane/core";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {

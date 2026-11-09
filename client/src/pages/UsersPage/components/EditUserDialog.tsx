@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Role, updateUserSchema, type UpdateUserInput } from "@helpdesk/core";
+import { Role, updateUserSchema, type UpdateUserInput } from "@resolvane/core";
 import axios from "axios";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {

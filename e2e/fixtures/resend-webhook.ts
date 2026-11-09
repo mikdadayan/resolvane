@@ -51,14 +51,14 @@ export function makeEmailFixture(
 ): ResendEmailFixture {
   return {
     object: "email",
-    to: ["support@helpdesk.example"],
+    to: ["support@resolvane.example"],
     from: "Jane Customer <customer@example.com>",
     created_at: new Date().toISOString(),
     subject: `Support request ${randomUUID()}`,
     bcc: [],
     cc: [],
     reply_to: null,
-    received_for: ["support@helpdesk.example"],
+    received_for: ["support@resolvane.example"],
     html: null,
     text: "I need help with my order.",
     headers: null,

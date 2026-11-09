@@ -4,7 +4,7 @@ import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { vi } from "vitest";
 import { renderWithQuery } from "@/test/utils";
-import { Role } from "@helpdesk/core";
+import { Role } from "@resolvane/core";
 import EditUserDialog from "./EditUserDialog";
 import type { User } from "../types";
 
