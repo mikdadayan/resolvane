@@ -13,6 +13,8 @@ helpdesk/
 
 ## Running the apps
 
+Install all workspace dependencies with `bun install` from the repository root. The workspace packages are named `@resolvane/client`, `@resolvane/server`, and `@resolvane/core` in the `client/`, `server/`, and `core/` directories. The root `bun.lock` is shared by all three packages. `bunfig.toml` enables isolated installs, with dependencies symlinked from `node_modules/.bun` and local workspace packages linked to their source directories.
+
 ```sh
 cd server && bun --hot src/index.ts
 cd client && bun dev
@@ -210,7 +212,7 @@ Never write e2e tests for: rendering, display logic, component states, API call 
 
 ## Shared code (`core/`)
 
-The `core/` package (`@resolvane/core`) holds zod schemas that are used on **both** the client and server. It has no build step — both sides import TypeScript source directly via path aliases.
+The `core/` package (`@resolvane/core`) holds zod schemas that are used on **both** the client and server. It has no build step — both sides import TypeScript source through its package exports and Bun workspace links.
 
 ```
 core/src/
@@ -222,7 +224,7 @@ core/src/
 **Rules:**
 - Any zod schema shared between client and server lives in `core/src/schemas/`.
 - Import as `import { mySchema, type MyInput } from "@resolvane/core"` — never duplicate schemas in client or server.
-- The path alias is configured in `client/tsconfig.app.json` + `client/vite.config.ts` (for the client) and `server/tsconfig.json` (for Bun). No install step needed.
+- Both client and server declare `"@resolvane/core": "workspace:*"`. Run `bun install` from the repository root to create the workspace links. The package's `exports` field resolves to `core/src/index.ts`.
 - `core` has no runtime dependencies — only `zod` as a peer dependency (already installed in both client and server).
 
 ## Documentation

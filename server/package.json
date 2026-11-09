@@ -1,5 +1,5 @@
 {
-	"name": "server",
+	"name": "@resolvane/server",
 	"module": "src/index.ts",
 	"type": "module",
 	"private": true,
@@ -21,6 +21,7 @@
 		"typescript": "^5"
 	},
 	"dependencies": {
+		"@resolvane/core": "workspace:*",
 		"@ai-sdk/groq": "^4.0.1",
 		"@prisma/adapter-pg": "^7.8.0",
 		"@prisma/client": "^7.8.0",

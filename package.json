@@ -1,6 +1,7 @@
 {
   "name": "resolvane",
   "private": true,
+  "workspaces": ["client", "server", "core"],
   "scripts": {
     "dev:server": "cd server && bun dev",
     "dev:client": "cd client && bun dev",
