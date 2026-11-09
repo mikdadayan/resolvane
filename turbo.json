@@ -1,0 +1,33 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "globalDependencies": ["tsconfig.json", "bunfig.toml"],
+  "tasks": {
+    "transit": {
+      "dependsOn": ["^transit"]
+    },
+    "build": {
+      "dependsOn": ["^build", "transit"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*",
+        "$TURBO_ROOT$/server/src/**",
+        "$TURBO_ROOT$/server/prisma/schema.prisma"
+      ],
+      "outputs": ["dist/**"],
+      "env": ["VITE_*", "NODE_ENV"]
+    },
+    "lint": {
+      "dependsOn": ["transit"]
+    },
+    "test": {
+      "dependsOn": ["transit"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "env": ["VITE_*", "NODE_ENV", "TZ"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": ["*"]
+    }
+  }
+}

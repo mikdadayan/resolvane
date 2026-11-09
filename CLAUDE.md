@@ -15,6 +15,10 @@ helpdesk/
 
 Install all workspace dependencies with `bun install` from the repository root. The workspace packages are named `@resolvane/client`, `@resolvane/server`, and `@resolvane/core` in the `client/`, `server/`, and `core/` directories. The root `bun.lock` is shared by all three packages. `bunfig.toml` enables isolated installs, with dependencies symlinked from `node_modules/.bun` and local workspace packages linked to their source directories.
 
+Root scripts use Turborepo: `bun run dev` starts both apps, `bun run dev:client` / `bun run dev:server` start one app, and `bun run build`, `bun run lint`, and `bun run test` run the existing workspace scripts. Add `--filter=@resolvane/client` to target one package. The server runs TypeScript directly and core exports source, so neither currently has a build script.
+
+`turbo.json` caches successful build, lint, and component test tasks. Its `transit` task propagates shared-package source changes into consumer cache keys. Client builds additionally track server sources because the auth client imports server auth types. Build/test hashes include local `.env*` files and declared environment variables. Development tasks remain persistent and uncached. Local cache files live in `.turbo/cache`; GitHub Actions persists them with `actions/cache` between runs. E2E tests continue to run directly through Playwright because they depend on live services.
+
 ```sh
 cd server && bun --hot src/index.ts
 cd client && bun dev

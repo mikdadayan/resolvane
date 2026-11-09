@@ -9,39 +9,51 @@ jobs:
   lint:
     name: Lint (client)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: client
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
 
       - name: Install dependencies
-        working-directory: .
         run: bun install --frozen-lockfile
 
+      - name: Restore Turborepo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo/cache
+          key: ${{ runner.os }}-turbo-lint-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-lint-
+
       - name: Run ESLint
-        run: bun run lint
+        run: bun run lint --filter=@resolvane/client
 
   test:
     name: Component tests (client)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: client
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
 
       - name: Install dependencies
-        working-directory: .
         run: bun install --frozen-lockfile
 
+      - name: Restore Turborepo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo/cache
+          key: ${{ runner.os }}-turbo-test-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-test-
+
       - name: Run component tests
-        run: bun run test
+        run: bun run test --filter=@resolvane/client
