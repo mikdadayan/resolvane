@@ -32,19 +32,19 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "/Users/mikayeldadayan/.bun/bin/bun resend-stub-server.ts",
+      command: "bun resend-stub-server.ts",
       cwd: "e2e",
       port: RESEND_STUB_PORT,
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: "/Users/mikayeldadayan/.bun/bin/bun --env-file .env.test --hot src/index.ts",
+      command: "bun --env-file .env.test --hot src/index.ts",
       cwd: "server",
       port: SERVER_PORT,
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: "/Users/mikayeldadayan/.bun/bin/bun dev --port 5174",
+      command: "bun dev --port 5174",
       cwd: "client",
       port: 5174,
       env: { VITE_SERVER_BASE_URL: SERVER_BASE_URL },

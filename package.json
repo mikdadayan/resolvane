@@ -10,6 +10,8 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "test:unit": "turbo run test",
+    "test:integration": "bunx playwright test e2e/api",
     "test:e2e": "bunx playwright test",
     "test:e2e:ui": "bunx playwright test --ui"
   },

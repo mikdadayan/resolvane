@@ -14,7 +14,7 @@
  * main application's .env file.
  */
 
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import path from "path";
 
 // __dirname is available here because Playwright compiles global-setup with
@@ -22,7 +22,7 @@ import path from "path";
 const SERVER_DIR = path.resolve(__dirname, "../server");
 
 function seed(script: string) {
-  execSync(`/Users/mikayeldadayan/.bun/bin/bun --env-file .env.test ${script}`, {
+  execFileSync("bun", ["--env-file", ".env.test", script], {
     cwd: SERVER_DIR,
     stdio: "inherit",
   });

@@ -1,11 +1,18 @@
 #!/bin/sh
-# Blocks a push if the client's lint or test suite fails, mirroring the
-# required CI checks so failures are caught locally before reaching GitHub.
+# Blocks a push if lint, unit/component, API integration, or browser tests fail.
 
-set -e
+set -eu
 
-echo "Running client lint..."
-(cd client && bun run lint)
+cd "$(git rev-parse --show-toplevel)"
 
-echo "Running client tests..."
-(cd client && bun run test)
+echo "Running lint..."
+bun run lint
+
+echo "Running unit and component tests..."
+bun run test:unit
+
+echo "Running API integration tests..."
+bun run test:integration
+
+echo "Running browser E2E tests..."
+bun run test:e2e e2e/pages
