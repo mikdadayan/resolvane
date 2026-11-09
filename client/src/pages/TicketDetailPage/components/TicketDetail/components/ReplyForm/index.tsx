@@ -1,3 +1,4 @@
+import { runtimeConfig } from "@/lib/runtime-config";
 import axios from "axios";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 async function polishReplyRequest(ticketId: string, body: string): Promise<{ body: string }> {
   const res = await axios.post(
-    `${import.meta.env.VITE_SERVER_BASE_URL}/api/tickets/${ticketId}/polish-reply`,
+    `${runtimeConfig.apiBaseUrl}/api/tickets/${ticketId}/polish-reply`,
     { body },
     { withCredentials: true }
   );

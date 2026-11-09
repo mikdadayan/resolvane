@@ -1,3 +1,4 @@
+import { runtimeConfig } from "@/lib/runtime-config";
 import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TicketStatus, TicketCategory, AGENT_SETTABLE_TICKET_STATUSES } from "@resolvane/core";
@@ -12,7 +13,7 @@ const UNCATEGORIZED = "uncategorized";
 type UpdateTicketInput = { status?: TicketStatus; category?: TicketCategory };
 
 async function fetchUsers(): Promise<AssignableUser[]> {
-  const res = await axios.get(`${import.meta.env.VITE_SERVER_BASE_URL}/api/users`, {
+  const res = await axios.get(`${runtimeConfig.apiBaseUrl}/api/users`, {
     withCredentials: true,
   });
   return res.data.users;
@@ -20,7 +21,7 @@ async function fetchUsers(): Promise<AssignableUser[]> {
 
 async function assignTicket(id: string, assignedToId: string | null): Promise<TicketDetail> {
   const res = await axios.patch<TicketDetail>(
-    `${import.meta.env.VITE_SERVER_BASE_URL}/api/tickets/${id}/assign`,
+    `${runtimeConfig.apiBaseUrl}/api/tickets/${id}/assign`,
     { assignedToId },
     { withCredentials: true }
   );
@@ -29,7 +30,7 @@ async function assignTicket(id: string, assignedToId: string | null): Promise<Ti
 
 async function updateTicket(id: string, data: UpdateTicketInput): Promise<TicketDetail> {
   const res = await axios.patch<TicketDetail>(
-    `${import.meta.env.VITE_SERVER_BASE_URL}/api/tickets/${id}`,
+    `${runtimeConfig.apiBaseUrl}/api/tickets/${id}`,
     data,
     { withCredentials: true }
   );

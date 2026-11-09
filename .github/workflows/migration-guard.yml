@@ -6,6 +6,9 @@ on:
   push:
     branches: [master]
 
+permissions:
+  contents: read
+
 jobs:
   check-immutable-migrations:
     runs-on: ubuntu-latest
@@ -15,11 +18,18 @@ jobs:
           fetch-depth: 0
 
       - name: Check no already-committed migration file was modified or deleted
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.event.after }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
-          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
-          HEAD="${{ github.event.pull_request.head.sha || github.event.after }}"
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            BASE=$(git merge-base "$BASE" "$HEAD")
+          elif [[ "$BASE" =~ ^0+$ ]]; then
+            BASE=$(git mktree </dev/null)
+          fi
 
-          CHANGED=$(git diff --name-status --diff-filter=MD "$BASE" "$HEAD" -- server/prisma/migrations || true)
+          CHANGED=$(git diff --name-status --no-renames --diff-filter=MD "$BASE" "$HEAD" -- server/prisma/migrations)
 
           if [ -n "$CHANGED" ]; then
             echo "The following already-committed migration file(s) were modified or deleted:"

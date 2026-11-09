@@ -1,14 +1,23 @@
-name: Client CI
+name: CI
 
 on:
   push:
   pull_request:
     branches: [master]
 
+permissions:
+  contents: read
+
+env:
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/resolvane_test
+  BETTER_AUTH_SECRET: ci-only-secret-at-least-32-characters-long
+  BETTER_AUTH_URL: http://localhost:3001
+
 jobs:
   lint:
     name: Lint (client)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -35,6 +44,7 @@ jobs:
   test:
     name: Component tests (client)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -57,3 +67,121 @@ jobs:
 
       - name: Run component tests
         run: bun run test --filter=@resolvane/client
+
+  server-test:
+    name: Unit tests (server)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+      - run: bun install --frozen-lockfile
+      - name: Generate Prisma client
+        working-directory: server
+        run: bunx --bun prisma generate
+      - name: Restore Turborepo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo/cache
+          key: ${{ runner.os }}-turbo-server-test-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-server-test-
+      - name: Run server unit tests
+        run: bun run test --filter=@resolvane/server
+
+  build:
+    name: Build and type checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+      - run: bun install --frozen-lockfile
+      - name: Generate Prisma client
+        working-directory: server
+        run: bunx --bun prisma generate
+      - name: Restore Turborepo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo/cache
+          key: ${{ runner.os }}-turbo-build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-build-
+      - name: Check server types
+        run: bun run --cwd server check-types
+      - name: Build client and check client/shared types
+        run: bun run build
+
+  integration-e2e:
+    name: API integration and browser E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: resolvane_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: CiAdminPassword123!
+      AGENT_EMAIL: agent@example.com
+      AGENT_PASSWORD: CiAgentPassword123!
+      AI_AGENT_EMAIL: ai-agent@example.com
+      AI_AGENT_PASSWORD: CiAiAgentPassword123!
+      RESEND_WEBHOOK_SECRET: whsec_Y2ktdGVzdC13ZWJob29rLXNpZ25pbmctc2VjcmV0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+      - run: bun install --frozen-lockfile
+      - name: Prepare local test configuration
+        run: cp server/.env.test.example server/.env.test
+      - name: Generate Prisma client
+        working-directory: server
+        run: bunx --bun prisma generate
+      - name: Apply migrations to the CI database
+        working-directory: server
+        run: bunx --bun prisma migrate deploy
+      - name: Install Chromium and system dependencies
+        run: bunx playwright install --with-deps chromium
+      - name: Run API integration tests
+        id: integration
+        run: bun run test:integration
+      - name: Upload API integration report
+        if: ${{ !cancelled() && steps.integration.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-integration-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          retention-days: 7
+      - name: Run browser E2E tests
+        id: browser
+        run: bun run test:e2e e2e/pages
+      - name: Upload browser E2E report
+        if: ${{ !cancelled() && steps.browser.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-e2e-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          retention-days: 7

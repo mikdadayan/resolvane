@@ -12,6 +12,7 @@ const mockTicket = {
   receivedAt: "2026-06-20T09:00:00.000Z",
   updatedAt: "2026-06-21T14:30:00.000Z",
   body: "I cannot log in. The page just spins forever.",
+  bodyHtml: null,
   assignedTo: null,
 };
 

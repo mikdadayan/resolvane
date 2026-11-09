@@ -28,7 +28,13 @@ export default function SelectField({
   return (
     <div>
       <p className="text-sm text-muted-foreground mb-1">{label}</p>
-      <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+      <Select
+        value={value}
+        onValueChange={(nextValue) => {
+          if (nextValue !== null) onValueChange(nextValue);
+        }}
+        disabled={disabled}
+      >
         <SelectTrigger aria-label={ariaLabel} className="w-full">
           <SelectValue>{() => displayValue}</SelectValue>
         </SelectTrigger>

@@ -1,3 +1,4 @@
+import { runtimeConfig } from "@/lib/runtime-config";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,7 +40,7 @@ export default function CreateUserDialog({ open, onOpenChange }: Props) {
   const mutation = useMutation({
     mutationFn: (data: FormValues) =>
       axios.post(
-        `${import.meta.env.VITE_SERVER_BASE_URL}/api/users`,
+        `${runtimeConfig.apiBaseUrl}/api/users`,
         data,
         { withCredentials: true }
       ),

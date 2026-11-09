@@ -50,7 +50,12 @@ export default function TicketsFilters({
         aria-label="Search tickets"
       />
 
-      <Select value={status} onValueChange={onStatusChange}>
+      <Select
+        value={status}
+        onValueChange={(value) => {
+          if (value !== null) onStatusChange(value);
+        }}
+      >
         <SelectTrigger aria-label="Filter by status" className="h-10 w-full bg-background sm:w-40">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
@@ -64,7 +69,12 @@ export default function TicketsFilters({
         </SelectContent>
       </Select>
 
-      <Select value={category} onValueChange={onCategoryChange}>
+      <Select
+        value={category}
+        onValueChange={(value) => {
+          if (value !== null) onCategoryChange(value);
+        }}
+      >
         <SelectTrigger aria-label="Filter by category" className="h-10 w-full bg-background sm:w-48">
           <SelectValue placeholder="Category" />
         </SelectTrigger>

@@ -1,3 +1,4 @@
+import { runtimeConfig } from "@/lib/runtime-config";
 import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type CreateReplyInput } from "@resolvane/core";
@@ -9,7 +10,7 @@ import ReplyForm from "./components/ReplyForm";
 
 async function fetchReplies(id: string): Promise<Reply[]> {
   const res = await axios.get(
-    `${import.meta.env.VITE_SERVER_BASE_URL}/api/tickets/${id}/replies`,
+    `${runtimeConfig.apiBaseUrl}/api/tickets/${id}/replies`,
     { withCredentials: true }
   );
   return res.data.replies;
@@ -17,7 +18,7 @@ async function fetchReplies(id: string): Promise<Reply[]> {
 
 async function createReply(id: string, data: CreateReplyInput): Promise<Reply> {
   const res = await axios.post<Reply>(
-    `${import.meta.env.VITE_SERVER_BASE_URL}/api/tickets/${id}/replies`,
+    `${runtimeConfig.apiBaseUrl}/api/tickets/${id}/replies`,
     data,
     { withCredentials: true }
   );

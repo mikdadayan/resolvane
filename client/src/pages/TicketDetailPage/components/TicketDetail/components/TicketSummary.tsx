@@ -1,3 +1,4 @@
+import { runtimeConfig } from "@/lib/runtime-config";
 import axios from "axios";
 import { Sparkles } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
@@ -5,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 async function fetchSummary(ticketId: string): Promise<{ summary: string }> {
   const res = await axios.post(
-    `${import.meta.env.VITE_SERVER_BASE_URL}/api/tickets/${ticketId}/summarize`,
+    `${runtimeConfig.apiBaseUrl}/api/tickets/${ticketId}/summarize`,
     {},
     { withCredentials: true }
   );

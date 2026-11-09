@@ -4,15 +4,16 @@ import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@tanstack/react-query'
 import * as Sentry from '@sentry/react'
 import { reportUnexpectedError } from '@/lib/sentry'
+import { runtimeConfig } from '@/lib/runtime-config'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import './index.css'
 import App from './App.tsx'
 import { Toaster } from '@/components/ui/sonner'
 
-if (import.meta.env.VITE_SENTRY_DSN) {
+if (runtimeConfig.sentryDsn) {
   Sentry.init({
-    dsn: import.meta.env.VITE_SENTRY_DSN,
-    environment: import.meta.env.VITE_SENTRY_ENVIRONMENT || import.meta.env.MODE,
+    dsn: runtimeConfig.sentryDsn,
+    environment: runtimeConfig.sentryEnvironment,
     integrations: [Sentry.browserTracingIntegration()],
     tracesSampleRate: import.meta.env.PROD ? 0.1 : 1.0,
   })

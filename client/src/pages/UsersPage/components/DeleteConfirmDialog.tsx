@@ -1,3 +1,4 @@
+import { runtimeConfig } from "@/lib/runtime-config";
 import { useState } from "react";
 import axios from "axios";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -23,7 +24,7 @@ export default function DeleteConfirmDialog({ user, onOpenChange }: Props) {
   const mutation = useMutation({
     mutationFn: () =>
       axios.delete(
-        `${import.meta.env.VITE_SERVER_BASE_URL}/api/users/${user!.id}`,
+        `${runtimeConfig.apiBaseUrl}/api/users/${user!.id}`,
         { withCredentials: true }
       ),
     onSuccess: () => {

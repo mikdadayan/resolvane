@@ -1,3 +1,4 @@
+import { runtimeConfig } from "@/lib/runtime-config";
 import { useState } from "react";
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
@@ -83,7 +84,7 @@ async function fetchTicketsByAssignee(
   category: TicketCategory | typeof CATEGORY_FILTER_ALL
 ): Promise<TicketsByAssigneeResponse> {
   const res = await axios.get<TicketsByAssigneeResponse>(
-    `${import.meta.env.VITE_SERVER_BASE_URL}/api/dashboard/tickets-by-assignee`,
+    `${runtimeConfig.apiBaseUrl}/api/dashboard/tickets-by-assignee`,
     {
       params: { range, category: category === CATEGORY_FILTER_ALL ? undefined : category },
       withCredentials: true,

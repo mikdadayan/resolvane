@@ -1,3 +1,4 @@
+import { runtimeConfig } from "@/lib/runtime-config";
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
 import { Ticket, CircleDot, Sparkles, TrendingUp, Clock } from "lucide-react";
@@ -9,7 +10,7 @@ import TicketsByAssigneeChart from "./components/TicketsByAssigneeChart";
 
 async function fetchDashboardStats(): Promise<DashboardStats> {
   const res = await axios.get<DashboardStats>(
-    `${import.meta.env.VITE_SERVER_BASE_URL}/api/dashboard/stats`,
+    `${runtimeConfig.apiBaseUrl}/api/dashboard/stats`,
     { withCredentials: true }
   );
   return res.data;

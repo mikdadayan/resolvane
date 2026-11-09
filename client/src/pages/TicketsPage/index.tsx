@@ -1,3 +1,4 @@
+import { runtimeConfig } from "@/lib/runtime-config";
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
@@ -26,7 +27,7 @@ type ListTicketsResponse = {
 };
 
 async function fetchTickets(params: ListTicketsParams): Promise<ListTicketsResponse> {
-  const res = await axios.get<ListTicketsResponse>(`${import.meta.env.VITE_SERVER_BASE_URL}/api/tickets`, {
+  const res = await axios.get<ListTicketsResponse>(`${runtimeConfig.apiBaseUrl}/api/tickets`, {
     params,
     withCredentials: true,
   });

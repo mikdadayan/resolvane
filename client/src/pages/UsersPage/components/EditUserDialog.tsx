@@ -1,3 +1,4 @@
+import { runtimeConfig } from "@/lib/runtime-config";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -52,7 +53,7 @@ export default function EditUserDialog({ user, onOpenChange }: Props) {
   const mutation = useMutation({
     mutationFn: (data: FormValues) =>
       axios.patch(
-        `${import.meta.env.VITE_SERVER_BASE_URL}/api/users/${user!.id}`,
+        `${runtimeConfig.apiBaseUrl}/api/users/${user!.id}`,
         data,
         { withCredentials: true }
       ),

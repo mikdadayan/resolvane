@@ -1,5 +1,21 @@
 # React + TypeScript + Vite
 
+## Runtime configuration
+
+`public/config.js` is loaded before the app and copied unchanged to `dist/config.js` during a build. For each deployment, supply that file with the environment's public settings:
+
+```js
+window.APP_CONFIG = {
+  apiBaseUrl: "https://api.resolvane.example",
+  sentryDsn: "",
+  sentryEnvironment: "production",
+};
+```
+
+The same built JS/CSS can be promoted from test to production by changing only `dist/config.js`. Configure hosting to serve this file with `Cache-Control: no-store`. All its values are public.
+
+With no overrides, production uses the frontend's own origin for API calls and disables Sentry. During development and tests, the existing `VITE_*` values from `.env` remain defaults.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

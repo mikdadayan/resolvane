@@ -1,3 +1,4 @@
+import { runtimeConfig } from "@/lib/runtime-config";
 import { useState } from "react";
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
@@ -16,7 +17,7 @@ type DialogState =
   | null;
 
 async function fetchUsers(): Promise<User[]> {
-  const res = await axios.get(`${import.meta.env.VITE_SERVER_BASE_URL}/api/users`, {
+  const res = await axios.get(`${runtimeConfig.apiBaseUrl}/api/users`, {
     withCredentials: true,
   });
   return res.data.users;
