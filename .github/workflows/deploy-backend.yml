@@ -1,0 +1,71 @@
+# Shared deployment procedure called by release.yml for test and production.
+# Environment-specific resource names are GitHub Environment Variables.
+# Runtime credentials remain in the existing ECS task definition's secret refs.
+name: Deploy backend to an environment
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      image:
+        description: Full ECR image URI with immutable sha256 digest
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # GitHub pauses here when this environment requires approval.
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ vars.BACKEND_URL }}
+    steps:
+      - name: Authenticate using this environment's AWS role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Put the tested image into this environment's task definition
+        id: task
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition-family: ${{ vars.ECS_TASK_FAMILY }}
+          container-name: ${{ vars.ECS_CONTAINER_NAME }}
+          image: ${{ inputs.image }}
+
+      - name: Run database migrations, then update the backend service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task.outputs.task-definition }}
+          cluster: ${{ vars.ECS_CLUSTER }}
+          service: ${{ vars.ECS_SERVICE }}
+          # A one-off ECS task reaches the private database inside AWS.
+          # The action waits for a zero exit code before updating the service.
+          run-task: true
+          wait-for-task-stopped: true
+          run-task-launch-type: FARGATE
+          run-task-subnets: ${{ vars.ECS_SUBNETS }}
+          run-task-security-groups: ${{ vars.ECS_SECURITY_GROUPS }}
+          run-task-assign-public-IP: DISABLED
+          run-task-container-overrides: >-
+            [{"name":"${{ vars.ECS_CONTAINER_NAME }}",
+              "command":["bun","--bun","run","prisma","migrate","deploy"]}]
+          wait-for-service-stability: true
+          wait-for-minutes: 20
+
+      - name: Verify the deployed backend responds successfully
+        env:
+          BACKEND_URL: ${{ vars.BACKEND_URL }}
+        run: |
+          curl --fail --silent --show-error \
+            --connect-timeout 10 --max-time 30 \
+            --retry 5 --retry-delay 5 --retry-all-errors \
+            "${BACKEND_URL%/}/health" | jq -e '.status == "ok"'

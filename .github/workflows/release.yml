@@ -1,0 +1,122 @@
+# Reviewable release template. Requires server/Dockerfile and AWS resources.
+# Start manually from Actions -> Release backend -> Run workflow.
+name: Release backend
+
+on:
+  workflow_dispatch:
+  # Once infrastructure is ready, uncomment this to release automatically
+  # after CI completes on master. Keep the checks job below.
+  # workflow_run:
+  #   workflows: [CI]
+  #   types: [completed]
+  #   branches: [master]
+
+permissions:
+  contents: read
+
+# Keep test verification and production promotion in the same serialized release.
+concurrency:
+  group: backend-release
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    name: Verify this commit passed CI
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    outputs:
+      sha: ${{ steps.checks.outputs.sha }}
+    steps:
+      - name: Require successful CI and migration checks for the exact commit
+        id: checks
+        uses: actions/github-script@v7
+        env:
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        with:
+          script: |
+            const sha = process.env.RELEASE_SHA;
+            for (const workflow of ['client-quality-checks.yml', 'migration-guard.yml']) {
+              const { data } = await github.rest.actions.listWorkflowRuns({
+                ...context.repo,
+                workflow_id: workflow,
+                head_sha: sha,
+                event: 'push',
+                per_page: 1,
+              });
+              if (data.workflow_runs[0]?.conclusion !== 'success') {
+                throw new Error(`${workflow} must pass for ${sha} before release.`);
+              }
+            }
+            core.setOutput('sha', sha);
+
+  build:
+    name: Build and publish one backend image
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: testing
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      image: ${{ steps.image.outputs.uri }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.checks.outputs.sha }}
+      - name: Authenticate to AWS using a short-lived role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Sign in to the container registry
+        id: registry
+        uses: aws-actions/amazon-ecr-login@v2
+      - uses: docker/setup-buildx-action@v3
+      - name: Build and push the image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: server/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.registry.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ needs.checks.outputs.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Record the immutable image digest for both deployments
+        id: image
+        env:
+          REPOSITORY: ${{ steps.registry.outputs.registry }}/${{ vars.ECR_REPOSITORY }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: echo "uri=$REPOSITORY@$DIGEST" >> "$GITHUB_OUTPUT"
+
+  deploy-test:
+    name: Deploy and verify test
+    needs: build
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/deploy-backend.yml
+    with:
+      environment: testing
+      image: ${{ needs.build.outputs.image }}
+
+  deploy-production:
+    name: Approve and promote to production
+    needs: [build, deploy-test]
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/deploy-backend.yml
+    with:
+      # Required reviewers must be configured on this GitHub Environment.
+      # This YAML name alone does not enforce approval.
+      environment: production
+      image: ${{ needs.build.outputs.image }}
+
