@@ -1,6 +1,6 @@
 import { hashPassword } from "better-auth/crypto";
-import { prisma } from "../src/lib/prisma";
-import { Role } from "../src/lib/types";
+import { prisma } from "../src/lib/prisma.js";
+import { Role } from "../src/lib/types.js";
 
 const email = process.env.ADMIN_EMAIL!;
 const password = process.env.ADMIN_PASSWORD!;

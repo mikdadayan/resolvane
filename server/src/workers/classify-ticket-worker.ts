@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/node";
-import { boss } from "../lib/boss";
-import { classifyTicket } from "../lib/classify-ticket";
+import { boss } from "../lib/boss.js";
+import { classifyTicket } from "../lib/classify-ticket.js";
 
 export const CLASSIFY_TICKET_QUEUE = "classify-ticket";
 

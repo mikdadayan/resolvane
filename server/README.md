@@ -1,15 +1,10 @@
-# server
+# Backend
 
-To install dependencies:
+Use Node 24.22.3 and pnpm 10.34.9. Install from the repository root with `pnpm install --frozen-lockfile`.
 
-```bash
-bun install
-```
+Run `pnpm dev:server` from the root for development. It builds the shared core package and watches both packages.
+Local development loads `server/.env`. Run `pnpm --filter @resolvane/server exec prisma generate` before the first build.
 
-To run:
-
-```bash
-bun run index.ts
-```
-
-This project was created using `bun init` in bun v1.3.14. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+`pnpm build` compiles core, the server, and the frontend. The backend starts with `pnpm --filter @resolvane/server start`.
+Production uses compiled JavaScript and environment variables supplied by its host. No Bun or tsx runtime is needed.
+The Docker build uses `server/Dockerfile` with the repository root as context.

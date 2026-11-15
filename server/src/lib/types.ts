@@ -1,1 +1,1 @@
-export { Role } from "../generated/prisma/enums";
+export { Role } from "../generated/prisma/enums.js";

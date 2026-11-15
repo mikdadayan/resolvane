@@ -33,7 +33,7 @@ export default function LoginPage() {
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   if (isPending) return null;
-  if (session) return <Navigate to="/" replace />;
+  if (session?.user) return <Navigate to="/" replace />;
 
   const onSubmit = async (values: FormValues) => {
     const { error } = await authClient.signIn.email({

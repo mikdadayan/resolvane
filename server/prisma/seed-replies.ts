@@ -5,8 +5,8 @@
  * Not idempotent — each run appends 20 more replies.
  */
 
-import { prisma } from "../src/lib/prisma";
-import { ReplySenderType } from "../src/generated/prisma/enums";
+import { prisma } from "../src/lib/prisma.js";
+import { ReplySenderType } from "../src/generated/prisma/enums.js";
 
 const TICKET_ID = "56ec30fa-42ad-4f7a-8728-53c5a4a6fc21";
 

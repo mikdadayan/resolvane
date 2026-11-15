@@ -6,9 +6,9 @@
  */
 
 import { hashPassword } from "better-auth/crypto";
-import { prisma } from "../src/lib/prisma";
-import { Role } from "../src/lib/types";
-import { AI_AGENT_ID } from "../src/lib/ai-agent";
+import { prisma } from "../src/lib/prisma.js";
+import { Role } from "../src/lib/types.js";
+import { AI_AGENT_ID } from "../src/lib/ai-agent.js";
 
 const email = process.env.AI_AGENT_EMAIL!;
 const password = process.env.AI_AGENT_PASSWORD!;

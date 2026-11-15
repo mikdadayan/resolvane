@@ -1,18 +1,18 @@
 import { Router, type RequestHandler } from "express";
 import { ReplySenderType } from "@resolvane/core";
-import { requireWebhookSecret } from "../middleware/require-webhook-secret";
-import { AppError, ErrorCode } from "../lib/errors";
-import { prisma } from "../lib/prisma";
-import { resend } from "../lib/resend";
-import { ticketSelect } from "../lib/ticket-select";
-import { replySelect } from "../lib/reply-select";
-import { extractReferencedMessageIds } from "../lib/email-threading";
-import { boss } from "../lib/boss";
-import { CLASSIFY_TICKET_QUEUE } from "../workers/classify-ticket-worker";
-import { AUTO_RESOLVE_TICKET_QUEUE } from "../workers/auto-resolve-ticket-worker";
-import { AI_AGENT_ID } from "../lib/ai-agent";
-import { TicketStatus } from "../generated/prisma/enums";
-import { Prisma } from "../generated/prisma/client";
+import { requireWebhookSecret } from "../middleware/require-webhook-secret.js";
+import { AppError, ErrorCode } from "../lib/errors.js";
+import { prisma } from "../lib/prisma.js";
+import { resend } from "../lib/resend.js";
+import { ticketSelect } from "../lib/ticket-select.js";
+import { replySelect } from "../lib/reply-select.js";
+import { extractReferencedMessageIds } from "../lib/email-threading.js";
+import { boss } from "../lib/boss.js";
+import { CLASSIFY_TICKET_QUEUE } from "../workers/classify-ticket-worker.js";
+import { AUTO_RESOLVE_TICKET_QUEUE } from "../workers/auto-resolve-ticket-worker.js";
+import { AI_AGENT_ID } from "../lib/ai-agent.js";
+import { TicketStatus } from "../generated/prisma/enums.js";
+import { Prisma } from "../generated/prisma/client.js";
 
 const router = Router();
 

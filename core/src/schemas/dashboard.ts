@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TicketStatus, TicketCategory } from "./ticket";
+import { TicketStatus, TicketCategory } from "./ticket.js";
 
 export type TicketsPerDay = {
   date: string; // YYYY-MM-DD (UTC)

@@ -32,19 +32,19 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "bun resend-stub-server.ts",
+      command: "node --import=tsx resend-stub-server.ts",
       cwd: "e2e",
       port: RESEND_STUB_PORT,
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: "bun --env-file .env.test --hot src/index.ts",
+      command: "node --env-file=.env.test dist/index.js",
       cwd: "server",
       port: SERVER_PORT,
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: "bun dev --port 5174",
+      command: "pnpm dev --port 5174",
       cwd: "client",
       port: 5174,
       env: { VITE_SERVER_BASE_URL: SERVER_BASE_URL },

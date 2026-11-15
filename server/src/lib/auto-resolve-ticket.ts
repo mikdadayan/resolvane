@@ -1,18 +1,23 @@
+import { readFile } from "node:fs/promises";
 import { groq } from "@ai-sdk/groq";
 import { generateObject } from "ai";
 import { z } from "zod";
-import { prisma } from "./prisma";
+import { prisma } from "./prisma.js";
 import { ReplySenderType, TicketStatus } from "@resolvane/core";
-import type { ticket } from "../generated/prisma/client";
-import { AI_AGENT_ID } from "./ai-agent";
-import { sendReplyEmail } from "./send-reply-email";
+import type { ticket } from "../generated/prisma/client.js";
+import { AI_AGENT_ID } from "./ai-agent.js";
+import { sendReplyEmail } from "./send-reply-email.js";
 
-const knowledgeBasePath = new URL("../../knowledge-base.md", import.meta.url);
+// Development executes src/lib; production executes dist/lib with its copied asset.
+const knowledgeBasePath = new URL(
+  import.meta.url.endsWith(".ts") ? "../../knowledge-base.md" : "../knowledge-base.md",
+  import.meta.url,
+);
 let knowledgeBasePromise: Promise<string> | null = null;
 
 function getKnowledgeBase(): Promise<string> {
   if (!knowledgeBasePromise) {
-    knowledgeBasePromise = Bun.file(knowledgeBasePath).text().catch((err) => {
+    knowledgeBasePromise = readFile(knowledgeBasePath, "utf8").catch((err) => {
       // Don't cache a rejected promise — retry the read on the next ticket instead of
       // permanently disabling auto-resolve for the life of the process.
       knowledgeBasePromise = null;

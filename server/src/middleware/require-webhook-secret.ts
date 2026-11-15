@@ -1,5 +1,5 @@
 import type { RequestHandler } from "express";
-import { resend } from "../lib/resend";
+import { resend } from "../lib/resend.js";
 
 const RESEND_WEBHOOK_SECRET = process.env.RESEND_WEBHOOK_SECRET as string;
 

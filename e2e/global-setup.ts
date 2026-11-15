@@ -9,7 +9,7 @@
  * AI_AGENT_ID, and that's a foreign key the ticket insert would otherwise
  * violate.
  *
- * The seed scripts are run with `bun --env-file .env.test` so they connect to
+ * The seed scripts are run with Node and `--env-file .env.test --import=tsx` so they connect to
  * the test database and pick up the correct credentials without polluting the
  * main application's .env file.
  */
@@ -22,7 +22,7 @@ import path from "path";
 const SERVER_DIR = path.resolve(__dirname, "../server");
 
 function seed(script: string) {
-  execFileSync("bun", ["--env-file", ".env.test", script], {
+  execFileSync(process.execPath, ["--env-file", ".env.test", "--import=tsx", script], {
     cwd: SERVER_DIR,
     stdio: "inherit",
   });

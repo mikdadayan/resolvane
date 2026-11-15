@@ -1,43 +1,45 @@
 {
-	"name": "@resolvane/server",
-	"module": "src/index.ts",
-	"type": "module",
-	"private": true,
-	"scripts": {
-		"dev": "bun --hot src/index.ts",
-		"test": "bun test src",
-		"check-types": "tsc --noEmit",
-		"seed": "bun prisma/seed.ts",
-		"seed:ai-agent": "bun prisma/seed-ai-agent.ts"
-	},
-	"devDependencies": {
-		"@types/bun": "latest",
-		"@types/cors": "^2.8.19",
-		"@types/express": "^5.0.6",
-		"@types/express-rate-limit": "^6.0.2",
-		"@types/pg": "^8.20.0",
-		"prisma": "^7.8.0",
-		"svix": "^1.96.1"
-	},
-	"peerDependencies": {
-		"typescript": "^5"
-	},
-	"dependencies": {
-		"@resolvane/core": "workspace:*",
-		"@ai-sdk/groq": "^4.0.1",
-		"@prisma/adapter-pg": "^7.8.0",
-		"@prisma/client": "^7.8.0",
-		"@sentry/node": "^10.65.0",
-		"@types/helmet": "^4.0.0",
-		"ai": "^7.0.6",
-		"better-auth": "^1.6.11",
-		"cors": "^2.8.6",
-		"express": "^5.2.1",
-		"express-rate-limit": "^8.5.2",
-		"helmet": "^8.2.0",
-		"pg": "^8.21.0",
-		"pg-boss": "^12.25.0",
-		"resend": "^6.17.2",
-		"zod": "^4.4.3"
-	}
+  "name": "@resolvane/server",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env ./node_modules/tsx/dist/cli.mjs watch --include \"../core/dist/**/*.js\" src/index.ts",
+    "test": "vitest run",
+    "check-types": "tsc --noEmit",
+    "seed": "node --env-file-if-exists=.env --import=tsx prisma/seed.ts",
+    "seed:ai-agent": "node --env-file-if-exists=.env --import=tsx prisma/seed-ai-agent.ts",
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-assets.mjs",
+    "start": "node dist/index.js"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/express-rate-limit": "^6.0.2",
+    "@types/pg": "^8.20.0",
+    "svix": "^1.96.1",
+    "@types/node": "^24.12.3",
+    "typescript": "~6.0.2",
+    "vitest": "^4.1.8",
+    "tsx": "4.23.15"
+  },
+  "dependencies": {
+    "@resolvane/core": "workspace:*",
+    "@ai-sdk/groq": "^4.0.1",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "@sentry/node": "^10.65.0",
+    "@types/helmet": "^4.0.0",
+    "ai": "^7.0.6",
+    "better-auth": "^1.6.11",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
+    "pg": "^8.21.0",
+    "pg-boss": "^12.25.0",
+    "prisma": "^7.8.0",
+    "resend": "^6.17.2",
+    "zod": "^4.4.3"
+  },
+  "main": "./dist/index.js"
 }

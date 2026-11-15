@@ -1,4 +1,4 @@
-import { resend } from "./resend";
+import { resend } from "./resend.js";
 
 const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL as string;
 const RESEND_RECEIVING_DOMAIN = process.env.RESEND_RECEIVING_DOMAIN as string;

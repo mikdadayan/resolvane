@@ -57,7 +57,7 @@ jobs:
           run-task-assign-public-IP: DISABLED
           run-task-container-overrides: >-
             [{"name":"${{ vars.ECS_CONTAINER_NAME }}",
-              "command":["bun","--bun","run","prisma","migrate","deploy"]}]
+              "command":["node","node_modules/prisma/build/index.js","migrate","deploy"]}]
           wait-for-service-stability: true
           wait-for-minutes: 20
 

@@ -1,5 +1,5 @@
-import { test, expect } from "bun:test";
-import { extractReferencedMessageIds } from "./email-threading";
+import { test, expect } from "vitest";
+import { extractReferencedMessageIds } from "./email-threading.js";
 
 test("returns [] for null headers", () => {
   expect(extractReferencedMessageIds(null)).toEqual([]);

@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express";
 import { fromNodeHeaders } from "better-auth/node";
-import { auth } from "../lib/auth";
-import { prisma } from "../lib/prisma";
+import { auth } from "../lib/auth.js";
+import { prisma } from "../lib/prisma.js";
 
 export const requireAuth: RequestHandler = async (req, res, next) => {
   const session = await auth.api.getSession({
