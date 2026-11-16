@@ -1,11 +1,17 @@
-# Reviewable release template. Requires server/Dockerfile and AWS resources.
+# Reviewable release template. Requires AWS resources and environment settings.
 # Start manually from Actions -> Release backend -> Run workflow.
 name: Release backend
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: Backend version, for example 1.2.0
+        required: true
+        type: string
   # Once infrastructure is ready, uncomment this to release automatically
-  # after CI completes on master. Keep the checks job below.
+  # after CI completes on master. First add an automatic version-selection policy;
+  # workflow_run does not supply the manual version input. Keep the checks job.
   # workflow_run:
   #   workflows: [CI]
   #   types: [completed]
@@ -29,19 +35,35 @@ jobs:
        github.event.workflow_run.event == 'push' &&
        github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
+      contents: read
       actions: read
     outputs:
       sha: ${{ steps.checks.outputs.sha }}
+      backend_changed: ${{ steps.changes.outputs.backend_changed }}
+      tag: ${{ steps.checks.outputs.tag }}
     steps:
       - name: Require successful CI and migration checks for the exact commit
         id: checks
         uses: actions/github-script@v7
         env:
           RELEASE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          RELEASE_VERSION: ${{ inputs.version }}
         with:
           script: |
             const sha = process.env.RELEASE_SHA;
+            const version = process.env.RELEASE_VERSION;
+            if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version || '')) {
+              throw new Error('Supply a version such as 1.2.0 (without a v prefix).');
+            }
+            const tag = `backend/v${version}`;
+            try {
+              await github.rest.git.getRef({ ...context.repo, ref: `tags/${tag}` });
+              throw new Error(`Tag ${tag} already exists. Choose a new version.`);
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
             for (const workflow of ['client-quality-checks.yml', 'migration-guard.yml']) {
               const { data } = await github.rest.actions.listWorkflowRuns({
                 ...context.repo,
@@ -55,9 +77,61 @@ jobs:
               }
             }
             core.setOutput('sha', sha);
+            core.setOutput('tag', tag);
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.checks.outputs.sha }}
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Ask Turborepo whether the backend is affected since the last release
+        id: changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ steps.checks.outputs.sha }}
+        run: |
+          PREVIOUS_RUN=$(gh run list --workflow release.yml --branch master \
+            --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          BASE=""
+          if [ -n "$PREVIOUS_RUN" ]; then
+            if gh run download "$PREVIOUS_RUN" --name release-source \
+              --dir "$RUNNER_TEMP/previous-release"; then
+              BASE=$(cat "$RUNNER_TEMP/previous-release/sha")
+            fi
+          fi
+
+          # First release, expired metadata, or missing history -> build backend.
+          BACKEND_CHANGED=true
+          if [ -n "$BASE" ] && git cat-file -e "$BASE^{commit}" 2>/dev/null && git merge-base --is-ancestor "$BASE" "$RELEASE_SHA"; then
+            # Turbo follows workspace dependencies, including core -> server.
+            # Exit 0 means unaffected, 1 means affected, and 2 means an error.
+            if pnpm exec turbo query affected --packages @resolvane/server \
+              --base "$BASE" --head "$RELEASE_SHA" --exit-code; then
+              BACKEND_CHANGED=false
+            else
+              STATUS=$?
+              if [ "$STATUS" -ne 1 ]; then exit "$STATUS"; fi
+            fi
+          fi
+          echo "backend_changed=$BACKEND_CHANGED" >> "$GITHUB_OUTPUT"
+          mkdir -p "$RUNNER_TEMP/current-release"
+          printf '%s\n' "$RELEASE_SHA" > "$RUNNER_TEMP/current-release/sha"
+      - name: Record source commit for future release comparisons
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-source
+          path: ${{ runner.temp }}/current-release/sha
+          overwrite: true
+          retention-days: 30
 
   build:
     name: Build and publish one backend image
+    if: needs.checks.outputs.backend_changed == 'true'
     needs: checks
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -86,6 +160,7 @@ jobs:
         with:
           context: .
           file: server/Dockerfile
+          target: runtime
           platforms: linux/amd64
           push: true
           tags: ${{ steps.registry.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ needs.checks.outputs.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -106,6 +181,50 @@ jobs:
     with:
       environment: testing
       image: ${{ needs.build.outputs.image }}
+
+  publish-release:
+    name: Record the successful production release
+    needs: [checks, build, deploy-production]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.checks.outputs.sha }}
+      - name: Create the Git tag and GitHub Release with rollback metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.checks.outputs.tag }}
+          RELEASE_SHA: ${{ needs.checks.outputs.sha }}
+          IMAGE: ${{ needs.build.outputs.image }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          metadata = {
+              'tag': os.environ['RELEASE_TAG'],
+              'commit': os.environ['RELEASE_SHA'],
+              'image': os.environ['IMAGE'],
+              'environment': 'production',
+              'workflow': os.environ['RUN_URL'],
+          }
+          directory = Path(os.environ['RUNNER_TEMP'])
+          (directory / 'release.json').write_text(json.dumps(metadata, indent=2) + '\n')
+          (directory / 'release-notes.md').write_text(
+              f"Backend deployed and health-checked in production.\n\n"
+              f"Commit: `{metadata['commit']}`\n\n"
+              f"Image: `{metadata['image']}`\n\n"
+              f"Workflow: {metadata['workflow']}\n"
+          )
+          PY
+          # gh creates the tag at the exact commit supplied through --target.
+          gh release create "$RELEASE_TAG" "$RUNNER_TEMP/release.json" \
+            --target "$RELEASE_SHA" --title "$RELEASE_TAG" \
+            --notes-file "$RUNNER_TEMP/release-notes.md" --latest=false
 
   deploy-production:
     name: Approve and promote to production
