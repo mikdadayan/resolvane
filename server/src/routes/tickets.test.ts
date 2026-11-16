@@ -1,21 +1,21 @@
-import { test, expect, mock, beforeEach } from "bun:test";
+import { test, expect, vi, beforeEach } from "vitest";
 import type { Request, Response } from "express";
-import { ErrorCode } from "../lib/errors";
-import { replySelect } from "../lib/reply-select";
-import { ticketSelect } from "../lib/ticket-select";
+import { ErrorCode } from "../lib/errors.js";
+import { replySelect } from "../lib/reply-select.js";
+import { ticketSelect } from "../lib/ticket-select.js";
 
 const TICKET_ID = "52671c5a-2b9d-4308-886d-9a5da4c68b7d";
 const OTHER_TICKET_ID = "4f871701-a882-40a1-836e-6a8b13f319d1";
 
-const ticketFindFirst = mock();
-const ticketUpdate = mock();
-const userFindFirst = mock();
-const ticketReplyCreate = mock();
-const sendReplyEmail = mock(async () => {});
+const ticketFindFirst = vi.fn();
+const ticketUpdate = vi.fn();
+const userFindFirst = vi.fn();
+const ticketReplyCreate = vi.fn();
+const sendReplyEmail = vi.fn(async () => {});
 
-mock.module("../lib/send-reply-email", () => ({ sendReplyEmail }));
+vi.doMock("../lib/send-reply-email.js", () => ({ sendReplyEmail }));
 
-mock.module("../lib/prisma", () => ({
+vi.doMock("../lib/prisma.js", () => ({
   prisma: {
     ticket: { findFirst: ticketFindFirst, update: ticketUpdate },
     user: { findFirst: userFindFirst },
@@ -23,12 +23,12 @@ mock.module("../lib/prisma", () => ({
   },
 }));
 
-const { assignTicket, updateTicket, createReply } = await import("./tickets");
+const { assignTicket, updateTicket, createReply } = await import("./tickets.js");
 
 function makeRes() {
   const res = {} as Response;
-  res.status = mock(() => res) as never;
-  res.json = mock(() => res) as never;
+  res.status = vi.fn(() => res) as never;
+  res.json = vi.fn(() => res) as never;
   return res;
 }
 

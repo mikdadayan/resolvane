@@ -1,6 +1,6 @@
 # Backend release walkthrough
 
-These workflows describe the intended release process for review. They need the backend Dockerfile, AWS infrastructure, and GitHub environment settings before they can execute successfully.
+These workflows describe the intended release process for review. The backend Dockerfile is included; AWS infrastructure and GitHub environment settings are still required before they can execute successfully.
 
 ## Files
 
@@ -52,7 +52,15 @@ Each environment has its own persistent PostgreSQL database and ECS task definit
 
 The task definitions provide ordinary runtime settings and references to AWS Secrets Manager secrets for database credentials, Better Auth secrets, and API keys. ECS injects these when starting the containers. The release workflow handles resource identifiers and image digests; database passwords stay in AWS.
 
-The future image must target Linux AMD64, use the server directory as its working directory, contain the pinned Prisma CLI and committed migrations, and generate the Prisma client during image creation. Its default command must start the Bun server without hot reload. The migration task overrides that command with `bun --bun run prisma migrate deploy`. Its entrypoint must permit command overrides.
+`server/Dockerfile` builds from the repository root with Node 24.22.3 and pnpm 10.34.9. Build stages install the frozen workspace dependencies and compile core and the server. The final image installs only production dependencies for the backend and core. The Prisma CLI is a production dependency because the same image runs migrations. The image generates the Prisma client during the build using a placeholder database URL; it does not connect to a database or run migrations while building. `.dockerignore` excludes local environment files, dependencies, tests, and generated clients, as well as unrelated repository files.
+
+Build the Linux AMD64 image used by the release workflow with:
+
+```sh
+docker build --platform linux/amd64 -f server/Dockerfile -t resolvane-backend:local .
+```
+
+The runtime uses the non-root node user, works in `/app/server`, and starts `node dist/index.js` on port 3000. Compiled output includes the knowledge-base asset; no Bun or tsx runtime is required. ECS supplies the real runtime environment and secrets. The migration task overrides the default command with `node node_modules/prisma/build/index.js migrate deploy`; the image has no entrypoint that would force the server to start. Database migrations and initial data provisioning remain separate from image creation.
 
 A fresh environment also needs its initial admin and AI agent users provisioned through the existing seed procedures using that environment's credentials. Ordinary releases run migrations without resetting or reseeding application data.
 
@@ -61,6 +69,20 @@ Private migration tasks need connectivity to PostgreSQL, ECR, Secrets Manager, a
 The deployed verification currently checks the existing `/health` endpoint. Full unit, API integration, and browser tests run in CI against temporary services. Testing authenticated behavior against the deployed test environment would require a separate smoke suite with its own test data.
 
 
-Workflow structure and action inputs can be reviewed locally. Actual image builds, AWS migrations, service updates, and GitHub approval behavior require the infrastructure and environment configuration above.
+Local builds and disposable-database container checks do not require AWS infrastructure. Actual AWS migrations, service updates, and GitHub approval behavior require the infrastructure and environment configuration above.
 
 References: [GitHub deployment approvals](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments), [GitHub OIDC for AWS](https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-aws), [ECS deployment action](https://github.com/aws-actions/amazon-ecs-deploy-task-definition).
+
+## Affected backend releases
+
+The checks job asks `turbo query affected --packages @resolvane/server --base <previous-release> --head <release-commit> --exit-code` whether the backend is affected. Workspace dependencies propagate shared core changes to the server. Client-only source changes skip backend image creation and both deployments. CI still validates the commit independently.
+
+The baseline is the source SHA recorded in the last successful release's `release-source` artifact. Failed releases are excluded. The first release, expired metadata (30 days), or unavailable history causes a conservative backend release. Turbo errors fail the job. Root dependency/configuration changes may conservatively affect all packages. Runtime setting changes made outside Git require separate deployment handling.
+
+## Versioned backend releases
+
+When starting Release backend manually, enter a version such as `1.2.0`. The workflow validates the format and rejects an existing `backend/v1.2.0` tag before building. After production deployment and health verification succeed, it creates that Git tag at the exact source commit and publishes a GitHub Release. The release includes a `release.json` asset recording the source commit, immutable ECR image URI, production environment, and workflow URL. Unaffected backend runs skip publication.
+
+Image tags still identify build attempts; Git release tags provide human-readable release versions. Future rollback tooling can read `release.json` to deploy the retained image by digest. Configure ECR retention to keep released images. Rollback automation and database compatibility checks remain separate work.
+
+Versions are selected manually; the commented automatic trigger requires an explicit version-selection policy before enabling. GitHub must allow the publication job's `contents: write` permission and tag creation. If publication fails after deployment, production may already be updated; rerun the failed publication job rather than rebuilding the image. Existing tags/releases are never intentionally overwritten.

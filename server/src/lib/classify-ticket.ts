@@ -1,8 +1,8 @@
 import { groq } from "@ai-sdk/groq";
 import { generateText } from "ai";
-import { prisma } from "./prisma";
+import { prisma } from "./prisma.js";
 import { TicketCategory } from "@resolvane/core";
-import type { ticket } from "../generated/prisma/client";
+import type { ticket } from "../generated/prisma/client.js";
 
 const VALID_CATEGORIES = Object.values(TicketCategory);
 

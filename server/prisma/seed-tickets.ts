@@ -6,8 +6,8 @@
  * Not idempotent — each run adds 100 more tickets.
  */
 
-import { prisma } from "../src/lib/prisma";
-import { TicketCategory } from "../src/generated/prisma/enums";
+import { prisma } from "../src/lib/prisma.js";
+import { TicketCategory } from "../src/generated/prisma/enums.js";
 import { AGENT_SETTABLE_TICKET_STATUSES } from "@resolvane/core";
 
 const SUBJECTS = [

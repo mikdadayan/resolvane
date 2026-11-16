@@ -1,13 +1,13 @@
-import { test, expect, mock, beforeEach } from "bun:test";
+import { test, expect, vi, beforeEach } from "vitest";
 import type { Request, Response } from "express";
 
-const ticketCount = mock();
-const ticketFindMany = mock();
-const ticketGroupBy = mock();
-const userFindMany = mock();
-const queryRaw = mock();
+const ticketCount = vi.fn();
+const ticketFindMany = vi.fn();
+const ticketGroupBy = vi.fn();
+const userFindMany = vi.fn();
+const queryRaw = vi.fn();
 
-mock.module("../lib/prisma", () => ({
+vi.doMock("../lib/prisma.js", () => ({
   prisma: {
     ticket: { count: ticketCount, findMany: ticketFindMany, groupBy: ticketGroupBy },
     user: { findMany: userFindMany },
@@ -15,12 +15,12 @@ mock.module("../lib/prisma", () => ({
   },
 }));
 
-const { getDashboardStats, getTicketsByStatus, getTicketsByAssignee } = await import("./dashboard");
+const { getDashboardStats, getTicketsByStatus, getTicketsByAssignee } = await import("./dashboard.js");
 
 function makeRes() {
   const res = {} as Response;
-  res.status = mock(() => res) as never;
-  res.json = mock(() => res) as never;
+  res.status = vi.fn(() => res) as never;
+  res.json = vi.fn(() => res) as never;
   return res;
 }
 
@@ -85,7 +85,7 @@ test("buckets recent tickets into a 30-day, oldest-first tickets-per-day series"
 
   await getDashboardStats({} as Request, res, () => {});
 
-  const { ticketsPerDay } = (res.json as ReturnType<typeof mock>).mock.calls[0]![0] as {
+  const { ticketsPerDay } = (res.json as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
     ticketsPerDay: { date: string; count: number }[];
   };
 

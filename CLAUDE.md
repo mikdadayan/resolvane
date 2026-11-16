@@ -8,26 +8,28 @@ An AI-powered ticket management system. Support emails arrive as tickets, automa
 helpdesk/
 ├── client/     # React + Vite + TypeScript (port 5173)
 ├── core/       # Shared zod schemas — imported by both client and server
-└── server/     # Bun + Express + TypeScript (port 3000)
+└── server/     # Node.js + Express + TypeScript (port 3000)
 ```
 
 ## Running the apps
 
-Install all workspace dependencies with `bun install` from the repository root. The workspace packages are named `@resolvane/client`, `@resolvane/server`, and `@resolvane/core` in the `client/`, `server/`, and `core/` directories. The root `bun.lock` is shared by all three packages. `bunfig.toml` enables isolated installs, with dependencies symlinked from `node_modules/.bun` and local workspace packages linked to their source directories.
+Install all workspace dependencies with `pnpm install` from the repository root. The workspace packages are named `@resolvane/client`, `@resolvane/server`, and `@resolvane/core` in the `client/`, `server/`, and `core/` directories. The root `pnpm-lock.yaml` is shared by all three packages. `pnpm-workspace.yaml` declares the packages. pnpm uses isolated dependency links through `node_modules/.pnpm` and links local workspace packages to their directories.
 
-Root scripts use Turborepo: `bun run dev` starts both apps, `bun run dev:client` / `bun run dev:server` start one app, and `bun run build`, `bun run lint`, and `bun run test` run the existing workspace scripts. Add `--filter=@resolvane/client` to target one package. The server runs TypeScript directly and core exports source, so neither currently has a build script.
+Default local runtime: `pnpm dev` builds/starts the backend through Compose, waits for its health check, then starts the local Vite client. PostgreSQL stays on the host; `server/.env.docker` must use `host.docker.internal` for its database host. See `server/README.md` for setup. `pnpm backend:up`, `backend:down`, `backend:logs`, and `backend:migrate` manage the container. Migrations remain explicit; Ctrl+C stops the client and `backend:down` stops the container. Development uses compose.dev.yaml with read-only server/core source mounts and TypeScript watchers. Source edits reload automatically. Rebuild dependency, schema, configuration, and Dockerfile changes with `backend:up`. `backend:prod` selects the compiled production runtime without development mounts.
+
+Root workspace scripts use Turborepo: `pnpm run dev:local` starts both apps directly on the host, `pnpm run dev:client` / `pnpm run dev:server` start one app, and `pnpm run build`, `pnpm run lint`, and `pnpm run test` run the existing workspace scripts. Add `--filter=@resolvane/client` to target one package. The server and core compile TypeScript to ESM JavaScript. Core exports its dist JavaScript and type declarations. Server development uses tsx; production runs Node on compiled JavaScript.
 
 `turbo.json` caches successful build, lint, and component test tasks. Its `transit` task propagates shared-package source changes into consumer cache keys. Client builds additionally track server sources because the auth client imports server auth types. Build/test hashes include local `.env*` files and declared environment variables. Development tasks remain persistent and uncached. Local cache files live in `.turbo/cache`; GitHub Actions persists them with `actions/cache` between runs. E2E tests continue to run directly through Playwright because they depend on live services.
 
 ```sh
-cd server && bun --hot src/index.ts
-cd client && bun dev
+pnpm dev:server
+cd client && pnpm dev
 ```
 
 ## Tech Stack
 
 - **Frontend**: React, TypeScript, Vite, Tailwind CSS v4, React Router v7, shadcn/ui
-- **Backend**: Bun, Express, TypeScript
+- **Backend**: Node.js, Express, TypeScript
 - **Database**: PostgreSQL + Prisma
 - **Auth**: better-auth (email/password, database-backed sessions via Prisma adapter)
 - **AI**: Anthropic Claude API
@@ -36,7 +38,7 @@ cd client && bun dev
 ## Client UI conventions
 
 - **Runtime configuration**: `client/index.html` loads `client/public/config.js` before the app. Read public API/Sentry settings through `runtimeConfig` from `@/lib/runtime-config`. Production deployments replace `dist/config.js` to set `window.APP_CONFIG.apiBaseUrl`, `sentryDsn`, and `sentryEnvironment` while reusing the built JS/CSS. Serve `config.js` with `Cache-Control: no-store` so clients receive current settings. Production defaults to a same-origin API and disabled Sentry. Existing `VITE_SERVER_BASE_URL`, `VITE_SENTRY_DSN`, and `VITE_SENTRY_ENVIRONMENT` values remain development/test fallbacks. Runtime settings are public; backend secrets belong in the server environment.
-- **Component library**: shadcn/ui — add components with `bunx shadcn@latest add <component>`
+- **Component library**: shadcn/ui — add components with `pnpm dlx shadcn@latest add <component>`
 - **Path alias**: `@/` resolves to `client/src/` — always use `@/` for imports, never relative paths across directories
 - **Styling**: Tailwind CSS v4 utility classes only — no custom CSS files. Use shadcn semantic tokens over raw Tailwind color classes where possible
 - **No `tailwind.config.js`**: v4 is CSS-first; all theme config lives in `src/index.css` under `@theme inline`
@@ -80,7 +82,7 @@ Key server conventions:
 - **Webhooks live under `/api/webhooks`, never mixed into a resource's own router**: any server-to-server endpoint authenticated by a shared secret (via `requireWebhookSecret`) instead of a user session belongs in `server/src/routes/webhooks.ts`, mounted at `/api/webhooks`. Resource routers like `tickets.ts` stay exclusively session-authed (`requireAuth`) — don't add a `requireWebhookSecret`-only route to a session-authed router just because it operates on the same resource. Share Prisma `select` shapes between the two (e.g. `ticket-select.ts`) instead of duplicating them.
 - **Route handlers are named functions, not inline callbacks**: define each handler as a `const handlerName: RequestHandler = async (req, res) => { ... }` above the router, then register all routes together at the bottom of the file (e.g. `router.get("/", requireAuth, requireAdmin, listUsers);`). Never pass an inline `async (req, res) => { ... }` directly to `router.get/post/patch/delete`.
 - **Migrations under `server/prisma/migrations/` are immutable once committed**: never hand-edit or delete an already-committed migration's `migration.sql` — add a new migration on top instead. This is enforced by a local pre-commit hook (`.githooks/pre-commit` — run `git config core.hooksPath .githooks` once to enable it) and by the `migration-guard` GitHub Actions workflow (`.github/workflows/migration-guard.yml`), which blocks any PR or push to `master` that modifies or deletes an existing migration file.
-- **Migration guard, lint, and all test suites must pass before pushing**: `.githooks/pre-push` first compares the pushed commit with the remote branch tip for modifications or deletions under `server/prisma/migrations`, treating renames as deletions. New branches are compared with their merge base against the target remote's `master`; fetch the remote first to make that history available. This checks the final pushed changes, so edits fully reverted before pushing are allowed. Deleted refs are skipped by the migration guard. It then runs root `bun run lint`, `bun run test:unit` (server unit and client component tests through Turbo), `bun run test:integration` (Playwright API tests in `e2e/api`), and `bun run test:e2e e2e/pages` (browser tests). It stops and blocks the push on the first failure. API and browser tests require `server/.env.test`, a migrated test database, and Playwright Chromium (`bunx playwright install chromium`). Playwright starts the local test services and seeds the test users. `bun run test:e2e` without a filter still runs the entire Playwright suite. The `client-quality-checks` workflow runs client lint, client component tests, server unit tests, server type checks, client builds, and API/browser tests on GitHub. Its full-stack job provisions PostgreSQL 17, applies committed migrations, generates Prisma, seeds test users, and uploads Playwright reports. CI uses disposable database credentials and the test email stub, without production secrets.
+- **Migration guard, lint, and all test suites must pass before pushing**: `.githooks/pre-push` first compares the pushed commit with the remote branch tip for modifications or deletions under `server/prisma/migrations`, treating renames as deletions. New branches are compared with their merge base against the target remote's `master`; fetch the remote first to make that history available. This checks the final pushed changes, so edits fully reverted before pushing are allowed. Deleted refs are skipped by the migration guard. It then runs root `pnpm run lint`, `pnpm run test:unit` (server unit and client component tests through Turbo), `pnpm run test:integration` (Playwright API tests in `e2e/api`), and `pnpm run test:e2e e2e/pages` (browser tests). It stops and blocks the push on the first failure. API and browser tests require `server/.env.test`, a migrated test database, and Playwright Chromium (`pnpm exec playwright install chromium`). Playwright starts the local test services and seeds the test users. `pnpm run test:e2e` without a filter still runs the entire Playwright suite. The `client-quality-checks` workflow runs client lint, client component tests, server unit tests, server type checks, client builds, and API/browser tests on GitHub. Its full-stack job provisions PostgreSQL 17, applies committed migrations, generates Prisma, seeds test users, and uploads Playwright reports. CI uses disposable database credentials and the test email stub, without production secrets.
 
 ## Client file layout
 
@@ -156,9 +158,9 @@ Component tests live **alongside** their page/component file as `*.test.tsx`:
 - Page-private component `FooPage/components/Bar.tsx` → `FooPage/components/Bar.test.tsx`
 
 ```sh
-bun run test:components   # run all component tests (verbose)
-bun run test              # run all component tests (silent)
-bun run test:watch        # watch mode
+pnpm run test:components   # run all component tests (verbose)
+pnpm run test              # run all component tests (silent)
+pnpm run test:watch        # watch mode
 ```
 
 **Stack**: Vitest + jsdom + `@testing-library/react` + `@testing-library/jest-dom` + MSW.
@@ -202,8 +204,8 @@ Use `server.use(...)` inside an individual test to override a handler for that t
 E2e tests live in `e2e/` and run with Playwright. Always use the **`playwright-e2e-writer`** agent to write tests — never write them inline.
 
 ```sh
-bun run test:e2e        # run all e2e tests (headless)
-bun run test:e2e:ui     # open Playwright UI
+pnpm run test:e2e        # run all e2e tests (headless)
+pnpm run test:e2e:ui     # open Playwright UI
 ```
 
 **When to use e2e vs component tests** — e2e tests require a real browser and a running server. Only write e2e tests for scenarios that genuinely need both:
@@ -217,7 +219,7 @@ Never write e2e tests for: rendering, display logic, component states, API call 
 
 ## Shared code (`core/`)
 
-The `core/` package (`@resolvane/core`) holds zod schemas that are used on **both** the client and server. It has no build step — both sides import TypeScript source through its package exports and Bun workspace links.
+The `core/` package (`@resolvane/core`) holds zod schemas that are used on **both** the client and server. It builds JavaScript and declarations in dist, consumed through pnpm workspace package exports. Build it before running consumers; root development commands also watch it.
 
 ```
 core/src/
@@ -229,8 +231,8 @@ core/src/
 **Rules:**
 - Any zod schema shared between client and server lives in `core/src/schemas/`.
 - Import as `import { mySchema, type MyInput } from "@resolvane/core"` — never duplicate schemas in client or server.
-- Both client and server declare `"@resolvane/core": "workspace:*"`. Run `bun install` from the repository root to create the workspace links. The package's `exports` field resolves to `core/src/index.ts`.
-- `core` has no runtime dependencies — only `zod` as a peer dependency (already installed in both client and server).
+- Both client and server declare `"@resolvane/core": "workspace:*"`. Run `pnpm install` from the repository root to create the workspace links. The package exports resolve to core/dist/index.js and core/dist/index.d.ts.
+- `core` declares `zod` as a runtime dependency because its exported schemas import it. Each package must declare the dependencies it imports.
 
 ## Documentation
 
@@ -241,3 +243,20 @@ Libraries in use: `express`, `react`, `react-router-dom`, `prisma`, `tailwindcss
 ## Resolvane brand palette
 
 Use deep teal primary actions (`#0F766E` in light mode, `#5EEAD4` in dark mode), cool slate neutrals, and mint AI surfaces through the semantic tokens in `client/src/index.css`. Keep status and destructive colors semantic and distinct from branding. The favicon uses the light primary teal.
+
+
+## Node runtime migration
+
+Use Node.js 24.22.3 and pnpm 10.34.9. Versions are pinned in .node-version and packageManager/engines.
+Do not use Bun. Relative imports in backend and core TypeScript use .js specifiers for NodeNext ESM.
+Core builds JavaScript and declarations first; server builds compiled JavaScript and copies knowledge-base.md
+into dist. Production starts node dist/index.js and uses injected environment variables, not local files.
+Development uses tsx watch and explicit Node environment-file loading. Node --env-file preserves already
+injected environment variables. Prisma config loads a local .env when present without overriding them.
+Backend unit tests use Vitest in its node environment. The E2E email stub uses Node HTTP.
+Playwright runs the compiled backend; its seed scripts use Node with tsx. Use disposable PostgreSQL 17
+for verification, never the local helpdesk database or AWS RDS. Root integration/E2E scripts build first.
+The Docker image uses a non-root node user and production dependencies, including the Prisma CLI.
+Its migration command override is node node_modules/prisma/build/index.js migrate deploy.
+Use Context7 when available, otherwise current official upstream documentation. Do not modify shared
+Git hooks configuration when operating inside an experimental worktree.

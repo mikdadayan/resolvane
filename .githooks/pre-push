@@ -32,13 +32,13 @@ while read -r local_ref local_oid remote_ref remote_oid; do
 done
 
 echo "Running lint..."
-bun run lint
+pnpm run lint
 
 echo "Running unit and component tests..."
-bun run test:unit
+pnpm run test:unit
 
 echo "Running API integration tests..."
-bun run test:integration
+pnpm run test:integration
 
 echo "Running browser E2E tests..."
-bun run test:e2e e2e/pages
+pnpm run test:e2e e2e/pages

@@ -13,7 +13,7 @@ export default function AdminRoute() {
     );
   }
 
-  if (!session || session.user.role !== Role.admin) {
+  if (session?.user?.role !== Role.admin) {
     return <Navigate to="/" replace />;
   }
 

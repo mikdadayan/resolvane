@@ -1,0 +1,10 @@
+packages:
+  - client
+  - server
+  - core
+
+onlyBuiltDependencies:
+  - "@prisma/client"
+  - "@prisma/engines"
+  - esbuild
+  - prisma

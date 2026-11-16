@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/node";
-import { boss } from "../lib/boss";
-import { autoResolveTicket } from "../lib/auto-resolve-ticket";
+import { boss } from "../lib/boss.js";
+import { autoResolveTicket } from "../lib/auto-resolve-ticket.js";
 
 export const AUTO_RESOLVE_TICKET_QUEUE = "auto-resolve-ticket";
 

@@ -1,14 +1,14 @@
 /**
  * Seeds the agent test user.
  * Credentials are read from environment variables (loaded from .env.test by
- * the Playwright global-setup via `bun --env-file .env.test`).
+ * the Playwright global-setup via `node --env-file .env.test --import=tsx`).
  *
  * Idempotent — exits cleanly when the user already exists.
  */
 
 import { hashPassword } from "better-auth/crypto";
-import { prisma } from "../src/lib/prisma";
-import { Role } from "../src/lib/types";
+import { prisma } from "../src/lib/prisma.js";
+import { Role } from "../src/lib/types.js";
 
 const email = process.env.AGENT_EMAIL!;
 const password = process.env.AGENT_PASSWORD!;

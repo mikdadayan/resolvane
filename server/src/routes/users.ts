@@ -1,13 +1,13 @@
 import { Router, type RequestHandler } from "express";
 import { hashPassword } from "better-auth/crypto";
 import { createUserSchema, updateUserSchema } from "@resolvane/core";
-import { requireAuth } from "../middleware/require-auth";
-import { requireAdmin } from "../middleware/require-admin";
-import { AppError, ErrorCode } from "../lib/errors";
-import { prisma } from "../lib/prisma";
-import { Role } from "../lib/types";
-import { validateBody } from "../lib/validation";
-import { AI_AGENT_ID } from "../lib/ai-agent";
+import { requireAuth } from "../middleware/require-auth.js";
+import { requireAdmin } from "../middleware/require-admin.js";
+import { AppError, ErrorCode } from "../lib/errors.js";
+import { prisma } from "../lib/prisma.js";
+import { Role } from "../lib/types.js";
+import { validateBody } from "../lib/validation.js";
+import { AI_AGENT_ID } from "../lib/ai-agent.js";
 
 const router = Router();
 

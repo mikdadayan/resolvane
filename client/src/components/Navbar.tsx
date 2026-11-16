@@ -33,19 +33,19 @@ export default function Navbar() {
             Resolvane
           </span>
         </Link>
-        {session && (
+        {session?.user && (
           <NavLink to="/dashboard" className={navLinkClassName}>
             <LayoutDashboard className="size-3.5" />
             Dashboard
           </NavLink>
         )}
-        {session && (
+        {session?.user && (
           <NavLink to="/tickets" className={navLinkClassName}>
             <Ticket className="size-3.5" />
             Tickets
           </NavLink>
         )}
-        {session?.user.role === Role.admin && (
+        {session?.user?.role === Role.admin && (
           <NavLink to="/users" className={navLinkClassName}>
             <Users className="size-3.5" />
             Users
@@ -53,7 +53,7 @@ export default function Navbar() {
         )}
       </div>
       <div className="flex items-center gap-4">
-        {session && (
+        {session?.user && (
           <span className="text-sm text-muted-foreground">{session.user.name}</span>
         )}
         <button

@@ -1,5 +1,5 @@
 import { Router, type RequestHandler } from "express";
-import type { Prisma } from "../generated/prisma/client";
+import type { Prisma } from "../generated/prisma/client.js";
 import {
   DashboardRange,
   dashboardFilterQuerySchema,
@@ -8,11 +8,11 @@ import {
   type TicketsByStatus,
   type TicketsPerDay,
 } from "@resolvane/core";
-import { requireAuth } from "../middleware/require-auth";
-import { prisma } from "../lib/prisma";
-import { TicketStatus, type TicketCategory } from "../generated/prisma/enums";
-import { validateQuery } from "../lib/validation";
-import { AI_AGENT_ID } from "../lib/ai-agent";
+import { requireAuth } from "../middleware/require-auth.js";
+import { prisma } from "../lib/prisma.js";
+import { TicketStatus, type TicketCategory } from "../generated/prisma/enums.js";
+import { validateQuery } from "../lib/validation.js";
+import { AI_AGENT_ID } from "../lib/ai-agent.js";
 
 const TICKETS_PER_DAY_WINDOW = 30;
 

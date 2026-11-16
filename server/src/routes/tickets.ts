@@ -10,15 +10,15 @@ import {
 import { groq } from "@ai-sdk/groq";
 import { generateText } from "ai";
 import { z } from "zod";
-import { requireAuth } from "../middleware/require-auth";
-import { AppError, ErrorCode, ERROR_DEFINITIONS } from "../lib/errors";
-import { prisma } from "../lib/prisma";
-import { replySelect } from "../lib/reply-select";
-import { ticketSelect } from "../lib/ticket-select";
-import { validateBody, validateId, validateQuery } from "../lib/validation";
-import { sendReplyEmail } from "../lib/send-reply-email";
-import { TicketStatus, type TicketCategory } from "../generated/prisma/enums";
-import type { Prisma } from "../generated/prisma/client";
+import { requireAuth } from "../middleware/require-auth.js";
+import { AppError, ErrorCode, ERROR_DEFINITIONS } from "../lib/errors.js";
+import { prisma } from "../lib/prisma.js";
+import { replySelect } from "../lib/reply-select.js";
+import { ticketSelect } from "../lib/ticket-select.js";
+import { validateBody, validateId, validateQuery } from "../lib/validation.js";
+import { sendReplyEmail } from "../lib/send-reply-email.js";
+import { TicketStatus, type TicketCategory } from "../generated/prisma/enums.js";
+import type { Prisma } from "../generated/prisma/client.js";
 
 const router = Router();
 

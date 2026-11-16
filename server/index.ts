@@ -1,1 +1,1 @@
-console.log("Hello via Bun!");
+console.log("Use pnpm dev:server from the repository root to start the backend.");

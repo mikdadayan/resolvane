@@ -1,33 +1,63 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
-  "globalDependencies": ["tsconfig.json", "bunfig.toml"],
+  "globalDependencies": [
+    "tsconfig.json",
+    "pnpm-workspace.yaml",
+    ".npmrc",
+    ".node-version"
+  ],
   "tasks": {
     "transit": {
-      "dependsOn": ["^transit"]
+      "dependsOn": [
+        "^transit"
+      ]
     },
     "build": {
-      "dependsOn": ["^build", "transit"],
+      "dependsOn": [
+        "^build",
+        "transit"
+      ],
       "inputs": [
         "$TURBO_DEFAULT$",
         ".env*",
         "$TURBO_ROOT$/server/src/**",
         "$TURBO_ROOT$/server/prisma/schema.prisma"
       ],
-      "outputs": ["dist/**"],
-      "env": ["VITE_*", "NODE_ENV"]
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "VITE_*",
+        "NODE_ENV"
+      ]
     },
     "lint": {
-      "dependsOn": ["transit"]
+      "dependsOn": [
+        "transit"
+      ]
     },
     "test": {
-      "dependsOn": ["transit"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "env": ["VITE_*", "NODE_ENV", "TZ"]
+      "dependsOn": [
+        "^build",
+        "transit"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*"
+      ],
+      "env": [
+        "VITE_*",
+        "NODE_ENV",
+        "TZ"
+      ]
     },
     "dev": {
       "cache": false,
       "persistent": true,
-      "passThroughEnv": ["*"]
+      "passThroughEnv": [
+        "*"
+      ]
     }
-  }
+  },
+  "cacheDir": ".turbo/cache"
 }

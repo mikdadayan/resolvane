@@ -1,25 +1,25 @@
-import { test, expect, mock, beforeEach } from "bun:test";
+import { test, expect, vi, beforeEach } from "vitest";
 import type { Request, Response } from "express";
-import { ErrorCode } from "../lib/errors";
-import { replySelect } from "../lib/reply-select";
-import { ticketSelect } from "../lib/ticket-select";
-import { Prisma } from "../generated/prisma/client";
+import { ErrorCode } from "../lib/errors.js";
+import { replySelect } from "../lib/reply-select.js";
+import { ticketSelect } from "../lib/ticket-select.js";
+import { Prisma } from "../generated/prisma/client.js";
 
 const TICKET_ID = "52671c5a-2b9d-4308-886d-9a5da4c68b7d";
 const AI_AGENT_ID = "ai-agent-id";
 
-const ticketFindFirst = mock();
-const ticketCreate = mock();
-const ticketUpdate = mock();
-const ticketReplyFindFirst = mock();
-const ticketReplyCreate = mock();
-const transaction = mock(async (fn: (tx: unknown) => unknown) =>
+const ticketFindFirst = vi.fn();
+const ticketCreate = vi.fn();
+const ticketUpdate = vi.fn();
+const ticketReplyFindFirst = vi.fn();
+const ticketReplyCreate = vi.fn();
+const transaction = vi.fn(async (fn: (tx: unknown) => unknown) =>
   await fn({ ticket: { update: ticketUpdate }, ticketReply: { create: ticketReplyCreate } })
 );
-const emailsReceivingGet = mock();
-const bossSend = mock(() => Promise.resolve());
+const emailsReceivingGet = vi.fn();
+const bossSend = vi.fn(() => Promise.resolve());
 
-mock.module("../lib/prisma", () => ({
+vi.doMock("../lib/prisma.js", () => ({
   prisma: {
     ticket: { findFirst: ticketFindFirst, create: ticketCreate },
     ticketReply: { findFirst: ticketReplyFindFirst },
@@ -27,18 +27,18 @@ mock.module("../lib/prisma", () => ({
   },
 }));
 
-mock.module("../lib/resend", () => ({
+vi.doMock("../lib/resend.js", () => ({
   resend: { emails: { receiving: { get: emailsReceivingGet } } },
 }));
 
-mock.module("../lib/boss", () => ({ boss: { send: bossSend } }));
+vi.doMock("../lib/boss.js", () => ({ boss: { send: bossSend } }));
 
-const { inboundEmail } = await import("./webhooks");
+const { inboundEmail } = await import("./webhooks.js");
 
 function makeRes() {
   const res = {} as Response;
-  res.status = mock(() => res) as never;
-  res.json = mock(() => res) as never;
+  res.status = vi.fn(() => res) as never;
+  res.json = vi.fn(() => res) as never;
   return res;
 }
 

@@ -1,4 +1,4 @@
-import type { auth } from "../lib/auth";
+import type { auth } from "../lib/auth.js";
 import type { WebhookEventPayload } from "resend";
 
 type Session = typeof auth.$Infer.Session.session;

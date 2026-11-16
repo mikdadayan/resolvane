@@ -12,7 +12,7 @@ export default function ProtectedRoute() {
     );
   }
 
-  if (!session) {
+  if (!session?.user) {
     return <Navigate to="/login" replace />;
   }
 
