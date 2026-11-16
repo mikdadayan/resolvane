@@ -1,0 +1,13 @@
+services:
+  backend:
+    build:
+      target: development
+    environment:
+      NODE_ENV: development
+    init: true
+    volumes:
+      - ./server/src:/app/server/src:ro
+      # Preserve the generated Linux Prisma client underneath the source mount.
+      - /app/server/src/generated/prisma
+      - ./core/src:/app/core/src:ro
+      - ./server/knowledge-base.md:/app/server/knowledge-base.md:ro
