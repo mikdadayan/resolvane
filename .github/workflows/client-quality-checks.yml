@@ -126,7 +126,8 @@ jobs:
 
   integration-e2e:
     name: API integration and browser E2E
-    runs-on: ubuntu-latest
+    # Keep the runner compatible with the pinned Playwright browser dependencies.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     services:
       postgres:
