@@ -20,6 +20,8 @@
 !server/tsconfig.json
 !server/tsconfig.build.json
 !server/knowledge-base.md
+!server/certs/
+!server/certs/**
 !server/scripts/
 !server/scripts/**
 !server/prisma/
