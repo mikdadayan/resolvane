@@ -16,6 +16,7 @@ RUN --mount=type=cache,id=resolvane-pnpm-amd64,target=/pnpm/store,sharing=locked
     pnpm install --store-dir /pnpm/store --frozen-lockfile
 
 FROM dependencies AS source
+COPY server/certs/rds-ca.pem ./server/certs/rds-ca.pem
 COPY core/src ./core/src
 COPY core/tsconfig.json ./core/tsconfig.json
 COPY server/src ./server/src
@@ -47,6 +48,7 @@ RUN --mount=type=cache,id=resolvane-pnpm-amd64,target=/pnpm/store,sharing=locked
 
 FROM base AS runtime
 ENV NODE_ENV=production PORT=3000
+COPY --chown=node:node server/certs/rds-ca.pem ./server/certs/rds-ca.pem
 # Copy the complete pnpm store and package links, keeping their relative layout.
 COPY --from=production-dependencies --chown=node:node /app/ /app/
 COPY --from=build --chown=node:node /app/core/dist ./core/dist
