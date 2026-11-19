@@ -204,7 +204,7 @@ const summarizeTicket: RequestHandler<{ id: string }> = async (req, res) => {
   ].join("\n\n");
 
   const { text } = await generateText({
-    model: groq("llama-3.1-8b-instant"),
+    model: groq("openai/gpt-oss-20b"),
     system:
       "You are a support team assistant. Summarize the support ticket in 2–4 sentences based on whatever information is available — subject, message body, replies, status, and reply count. " +
       "If the content is unclear or gibberish, describe the ticket's current state using the metadata instead. " +
@@ -228,7 +228,7 @@ const polishReply: RequestHandler<{ id: string }> = async (req, res) => {
   if (!ticket) throw ticketNotFound();
 
   const { text } = await generateText({
-    model: groq("llama-3.1-8b-instant"),
+    model: groq("openai/gpt-oss-20b"),
     prompt: `You are a support agent assistant. Improve the following customer support reply to make it clearer, more professional, and more empathetic. Keep it concise — no unnecessary filler, padding, or repetition. Preserve the original intent and all specific details. Begin the reply with a greeting using the customer's first name (their full name is: ${ticket.senderName}), for example "Hi [first name]," or "Dear [first name],". End the reply with this exact signature on a new line:\n\nBest regards,\n${req.user!.name}\nhttps://codewithmosh.com\n\nReturn only the improved reply text with the signature — no preamble, no explanation.\n\nTicket subject: ${ticket.subject}\n\nOriginal reply:\n${data.body}`,
   });
 

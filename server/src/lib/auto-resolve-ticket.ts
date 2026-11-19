@@ -78,7 +78,7 @@ export async function autoResolveTicket(
     const firstName = getFirstName(ticket.senderName);
 
     const { object } = await generateObject({
-      model: groq("llama-3.1-8b-instant"),
+      model: groq("openai/gpt-oss-20b"),
       schema: resolutionSchema,
       temperature: 0,
       system:
