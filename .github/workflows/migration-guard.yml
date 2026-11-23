@@ -21,7 +21,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check no already-committed migration file was modified or deleted
+      # Keep the workflow/job present for required checks and release verification.
+      # Only the inspection step is conditional, not the workflow trigger.
+      - name: Detect migration changes
+        id: changes
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD: ${{ github.event.pull_request.head.sha || github.event.after }}
@@ -33,6 +36,21 @@ jobs:
             BASE=$(git mktree </dev/null)
           fi
 
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          echo "head=$HEAD" >> "$GITHUB_OUTPUT"
+          CHANGED=$(git diff --name-only --no-renames "$BASE" "$HEAD" -- server/prisma/migrations)
+          if [ -n "$CHANGED" ]; then
+            echo "migrations_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "migrations_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check no already-committed migration file was modified or deleted
+        if: steps.changes.outputs.migrations_changed == 'true'
+        env:
+          BASE: ${{ steps.changes.outputs.base }}
+          HEAD: ${{ steps.changes.outputs.head }}
+        run: |
           CHANGED=$(git diff --name-status --no-renames --diff-filter=MD "$BASE" "$HEAD" -- server/prisma/migrations)
 
           if [ -n "$CHANGED" ]; then
@@ -44,3 +62,7 @@ jobs:
           fi
 
           echo "No existing migration files were modified or deleted."
+
+      - name: Skip inspection for unrelated changes
+        if: steps.changes.outputs.migrations_changed == 'false'
+        run: echo "No migration files changed; migration inspection is not needed."
