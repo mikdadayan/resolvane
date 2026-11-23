@@ -1,4 +1,4 @@
-# Backend build context: only the inputs used by server/Dockerfile.
+# Build context allowlist for backend and frontend development images.
 **
 !package.json
 !pnpm-lock.yaml
@@ -9,6 +9,14 @@
 !.node-version
 !client/
 !client/package.json
+!client/Dockerfile
+!client/index.html
+!client/vite.config.ts
+!client/tsconfig*.json
+!client/src/
+!client/src/**
+!client/public/
+!client/public/**
 !core/
 !core/package.json
 !core/tsconfig.json

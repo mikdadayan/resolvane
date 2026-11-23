@@ -4,6 +4,12 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
+  server: {
+    host: process.env.CONTAINER_DEV === 'true' ? '0.0.0.0' : 'localhost',
+    port: 5173,
+    strictPort: true,
+    watch: { usePolling: process.env.CONTAINER_DEV === 'true' },
+  },
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

@@ -5,9 +5,9 @@
   "scripts": {
     "dev:server": "pnpm --filter @resolvane/core build && turbo run dev --filter=@resolvane/server --filter=@resolvane/core",
     "dev:client": "pnpm --filter @resolvane/core build && turbo run dev --filter=@resolvane/client --filter=@resolvane/core",
-    "dev": "pnpm backend:up && pnpm dev:client",
-    "dev:stop": "pnpm backend:down",
-    "dev:logs": "pnpm backend:logs",
+    "dev": "docker compose -f compose.yaml -f compose.dev.yaml up --build --detach --wait --renew-anon-volumes backend frontend",
+    "dev:stop": "docker compose -f compose.yaml -f compose.dev.yaml down",
+    "dev:logs": "docker compose -f compose.yaml -f compose.dev.yaml logs --follow backend frontend",
     "dev:local": "pnpm --filter @resolvane/core build && turbo run dev",
     "backend:up": "docker compose -f compose.yaml -f compose.dev.yaml up --build --detach --wait --renew-anon-volumes backend",
     "backend:prod": "docker compose up --build --detach --wait backend",

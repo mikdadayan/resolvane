@@ -1,5 +1,18 @@
 # React + TypeScript + Vite
 
+## Container development
+
+Run `pnpm dev` from the repository root to build/start Vite and the backend in
+Docker. Open http://localhost:5173. Source edits hot-reload; dependencies stay
+inside the images. Run `pnpm dev:logs` for logs and `pnpm dev:stop` to stop both.
+Re-run `pnpm dev` after dependency or configuration changes. PostgreSQL stays
+on the host; see `server/README.md` for its environment setup.
+
+`pnpm dev:local` runs both apps on the host. The development-only client
+Dockerfile does not change production hosting: CI builds static files for S3
+and CloudFront.
+
+
 ## Runtime configuration
 
 `public/config.js` is loaded before the app and copied unchanged to `dist/config.js` during a build. For each deployment, supply that file with the environment's public settings:
