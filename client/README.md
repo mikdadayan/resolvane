@@ -13,6 +13,30 @@ Dockerfile does not change production hosting: CI builds static files for S3
 and CloudFront.
 
 
+## Testing deployment
+
+After merging the workflow into master and waiting for CI and Migration Guard
+to pass on that exact commit, run **Actions → Release frontend testing → Run
+workflow**, selecting master. This workflow does not release the backend.
+
+The GitHub `testing` environment needs `AWS_REGION`, `AWS_DEPLOY_ROLE_ARN`,
+`FRONTEND_S3_BUCKET`, and `FRONTEND_URL`. The URL is the CloudFront HTTPS origin
+shared by frontend pages and `/api/*`. Its deployment role needs S3 list/read/write
+permissions on the frontend bucket. CloudFront must use `CachingDisabled` for
+the frontend behavior; this workflow does not create invalidations or change
+distribution settings. Uploads use `Cache-Control: no-store` for browser caches.
+
+CI builds core and the client, generating Prisma types for the client's type-only
+auth imports. No migration or database connection is performed. The deployment
+downloads the build artifact, generates public `config.js`, uploads assets first
+and index.html last, then checks the public HTML, config, and `/tickets` rewrite.
+Old hashed assets are retained so existing browser tabs keep working; bucket
+storage cleanup is a separate future task. These HTTP checks do not verify login.
+
+Before testing login, configure the backend's `BETTER_AUTH_URL` and
+`BETTER_AUTH_TRUSTED_ORIGINS` for the CloudFront HTTPS origin and deploy the new
+task definition. The S3 bucket remains private and readable through CloudFront OAC.
+
 ## Runtime configuration
 
 `public/config.js` is loaded before the app and copied unchanged to `dist/config.js` during a build. For each deployment, supply that file with the environment's public settings:

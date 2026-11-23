@@ -1,0 +1,139 @@
+name: Release frontend testing
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-release-testing
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    name: Verify this commit passed CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Require master and successful checks for this exact commit
+        uses: actions/github-script@v7
+        with:
+          script: |
+            if (context.ref !== 'refs/heads/master') {
+              throw new Error('Frontend releases must run from master.');
+            }
+            for (const workflow of ['client-quality-checks.yml', 'migration-guard.yml']) {
+              const { data } = await github.rest.actions.listWorkflowRuns({
+                ...context.repo,
+                workflow_id: workflow,
+                head_sha: context.sha,
+                event: 'push',
+                per_page: 1,
+              });
+              if (data.workflow_runs[0]?.conclusion !== 'success') {
+                throw new Error(`${workflow} must pass for ${context.sha} before release. Wait for CI, then rerun this workflow.`);
+              }
+            }
+
+  build:
+    name: Build frontend
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Prisma generation/type checking needs a URL, but never connects to this DB.
+      DATABASE_URL: postgresql://unused:unused@localhost:5432/unused
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Generate Prisma types used by the auth client
+        run: pnpm --filter @resolvane/server exec prisma generate
+      - name: Build client and its shared package
+        run: pnpm run build --filter=@resolvane/client
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: client/dist/
+          if-no-files-found: error
+          retention-days: 14
+
+  deploy:
+    name: Deploy frontend to testing
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: testing
+      url: ${{ vars.FRONTEND_URL }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      FRONTEND_S3_BUCKET: ${{ vars.FRONTEND_S3_BUCKET }}
+      FRONTEND_URL: ${{ vars.FRONTEND_URL }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist
+      - name: Validate settings and write public runtime configuration
+        run: |
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          from urllib.parse import urlsplit
+
+          bucket = os.environ['FRONTEND_S3_BUCKET']
+          if not re.fullmatch(r'[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]', bucket):
+              raise SystemExit('Set FRONTEND_S3_BUCKET to the testing bucket name.')
+          url = os.environ['FRONTEND_URL'].rstrip('/')
+          parsed = urlsplit(url)
+          if (parsed.scheme != 'https' or not parsed.hostname or parsed.path
+                  or parsed.query or parsed.fragment or parsed.username or parsed.password):
+              raise SystemExit('Set FRONTEND_URL to the HTTPS origin, without a path.')
+          config = {'apiBaseUrl': url, 'sentryDsn': '', 'sentryEnvironment': 'testing'}
+          Path('dist/config.js').write_text('window.APP_CONFIG = ' + json.dumps(config) + ';\n')
+          if not Path('dist/index.html').is_file():
+              raise SystemExit('The frontend artifact is missing index.html.')
+          PY
+      - name: Authenticate to AWS with the testing deployment role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      # Keep old hashed assets for browsers still running an earlier release.
+      # No --delete: asset retention/cleanup can be configured separately.
+      - name: Upload assets before switching the entry point
+        run: |
+          aws s3 sync dist/ "s3://$FRONTEND_S3_BUCKET/" \
+            --exclude index.html --exclude config.js \
+            --cache-control no-store --only-show-errors
+          aws s3 cp dist/config.js "s3://$FRONTEND_S3_BUCKET/config.js" \
+            --content-type application/javascript --cache-control no-store --only-show-errors
+          aws s3 cp dist/index.html "s3://$FRONTEND_S3_BUCKET/index.html" \
+            --content-type text/html --cache-control no-store --only-show-errors
+      - name: Verify public files and React route rewriting
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-all-errors \
+            --connect-timeout 10 --max-time 30 "$FRONTEND_URL/" -o /tmp/frontend-index.html
+          cmp dist/index.html /tmp/frontend-index.html
+          curl --fail --silent --show-error --retry 5 --retry-all-errors \
+            --connect-timeout 10 --max-time 30 "$FRONTEND_URL/config.js" -o /tmp/frontend-config.js
+          cmp dist/config.js /tmp/frontend-config.js
+          curl --fail --silent --show-error --retry 5 --retry-all-errors \
+            --connect-timeout 10 --max-time 30 "$FRONTEND_URL/tickets" -o /tmp/frontend-route.html
+          cmp dist/index.html /tmp/frontend-route.html
+      - name: Record deployment
+        run: |
+          printf 'Frontend commit: `%s`\n\nURL: %s\n' "$GITHUB_SHA" "$FRONTEND_URL" >> "$GITHUB_STEP_SUMMARY"
