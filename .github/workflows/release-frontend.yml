@@ -172,6 +172,8 @@ jobs:
               files.extractall('dist', filter='data')
           PY
       - name: Validate settings and write public runtime configuration
+        env:
+          ROLLBACK: ${{ needs.checks.outputs.rollback }}
         run: |
           python3 - <<'PY'
           import json, os, re
@@ -186,7 +188,10 @@ jobs:
           if (parsed.scheme != 'https' or not parsed.hostname or parsed.path
                   or parsed.query or parsed.fragment or parsed.username or parsed.password):
               raise SystemExit('Set FRONTEND_URL to the HTTPS origin, without a path.')
-          config = {'apiBaseUrl': url, 'sentryDsn': '', 'sentryEnvironment': 'testing'}
+          # TEMPORARY rollback exercise: break new testing deployments only.
+          # Rollbacks must retain the correct API URL so recovery remains possible.
+          api_url = url if os.environ['ROLLBACK'] == 'true' else url + '/rollback-test-broken-api'
+          config = {'apiBaseUrl': api_url, 'sentryDsn': '', 'sentryEnvironment': 'testing'}
           Path('dist/config.js').write_text('window.APP_CONFIG = ' + json.dumps(config) + ';\n')
           if not Path('dist/index.html').is_file():
               raise SystemExit('The frontend artifact is missing index.html.')
