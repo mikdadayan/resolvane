@@ -2,6 +2,15 @@ name: Release frontend testing
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "New frontend version, e.g. 1.2.0 (leave empty for rollback)"
+        required: false
+        type: string
+      rollback_version:
+        description: "Restore a published frontend version, e.g. 1.1.0 (leave version empty)"
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -12,15 +21,23 @@ concurrency:
 
 jobs:
   checks:
-    name: Verify this commit passed CI
+    name: Verify CI and select release artifact
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: read
       actions: read
+    outputs:
+      release_tag: ${{ steps.source.outputs.release_tag }}
+      source_sha: ${{ steps.source.outputs.source_sha }}
+      rollback: ${{ steps.source.outputs.rollback }}
     steps:
       - name: Require master and successful checks for this exact commit
+        id: source
         uses: actions/github-script@v7
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          ROLLBACK_VERSION: ${{ inputs.rollback_version }}
         with:
           script: |
             if (context.ref !== 'refs/heads/master') {
@@ -38,10 +55,37 @@ jobs:
                 throw new Error(`${workflow} must pass for ${context.sha} before release. Wait for CI, then rerun this workflow.`);
               }
             }
+            const version = process.env.RELEASE_VERSION?.trim();
+            const rollbackVersion = process.env.ROLLBACK_VERSION?.trim();
+            const semver = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+            if (!!version === !!rollbackVersion || !semver.test(version || rollbackVersion)) {
+              throw new Error('Supply exactly one of version or rollback_version, such as 1.2.0 without a v prefix.');
+            }
+            const tag = `frontend/v${version || rollbackVersion}`;
+            core.setOutput('release_tag', tag);
+            if (version) {
+              try {
+                await github.rest.git.getRef({ ...context.repo, ref: `tags/${tag}` });
+                throw new Error(`Tag ${tag} already exists. Choose a new version.`);
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
+              core.setOutput('source_sha', context.sha);
+              core.setOutput('rollback', 'false');
+              return;
+            }
+            const { data: release } = await github.rest.repos.getReleaseByTag({ ...context.repo, tag });
+            if (release.draft || !/^[a-f0-9]{40}$/.test(release.target_commitish)
+                || !['frontend-dist.tar.gz', 'release.json'].every(name => release.assets.some(asset => asset.name === name))) {
+              throw new Error('Rollback requires a published frontend release with an exact source SHA, build archive, and release metadata.');
+            }
+            core.setOutput('source_sha', release.target_commitish);
+            core.setOutput('rollback', 'true');
 
   build:
     name: Build frontend
     needs: checks
+    if: needs.checks.outputs.rollback == 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -66,11 +110,16 @@ jobs:
           name: frontend-dist
           path: client/dist/
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
 
   deploy:
     name: Deploy frontend to testing
-    needs: build
+    needs: [checks, build]
+    # Rollback intentionally skips build, but failed checks/build must still block uploads.
+    if: >-
+      !cancelled() && needs.checks.result == 'success' &&
+      (needs.build.result == 'success' ||
+       (needs.checks.outputs.rollback == 'true' && needs.build.result == 'skipped'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:
@@ -92,10 +141,36 @@ jobs:
             echo "Add SMOKE_EMAIL and SMOKE_PASSWORD to the testing environment secrets."
             exit 1
           fi
-      - uses: actions/download-artifact@v4
+      - name: Download this run's frontend build
+        if: needs.checks.outputs.rollback == 'false'
+        uses: actions/download-artifact@v4
         with:
           name: frontend-dist
           path: dist
+      - name: Download and verify the named release for rollback
+        if: needs.checks.outputs.rollback == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.checks.outputs.release_tag }}
+          SOURCE_SHA: ${{ needs.checks.outputs.source_sha }}
+        run: |
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern frontend-dist.tar.gz --pattern release.json --dir "$RUNNER_TEMP/rollback"
+          python3 - <<'PY'
+          import hashlib, json, os, tarfile
+          from pathlib import Path
+
+          directory = Path(os.environ['RUNNER_TEMP']) / 'rollback'
+          metadata = json.loads((directory / 'release.json').read_text())
+          archive = directory / 'frontend-dist.tar.gz'
+          if (metadata.get('tag') != os.environ['RELEASE_TAG']
+                  or metadata.get('commit') != os.environ['SOURCE_SHA']
+                  or metadata.get('environment') != 'testing'
+                  or metadata.get('sha256') != hashlib.sha256(archive.read_bytes()).hexdigest()):
+              raise SystemExit('Release metadata or archive checksum does not match.')
+          with tarfile.open(archive) as files:
+              files.extractall('dist', filter='data')
+          PY
       - name: Validate settings and write public runtime configuration
         run: |
           python3 - <<'PY'
@@ -144,12 +219,19 @@ jobs:
             --connect-timeout 10 --max-time 30 "$FRONTEND_URL/tickets" -o /tmp/frontend-route.html
           cmp dist/index.html /tmp/frontend-route.html
       - name: Record deployment
+        env:
+          SOURCE_SHA: ${{ needs.checks.outputs.source_sha }}
+          RELEASE_TAG: ${{ needs.checks.outputs.release_tag }}
+          ROLLBACK: ${{ needs.checks.outputs.rollback }}
         run: |
-          printf 'Frontend commit: `%s`\n\nURL: %s\n' "$GITHUB_SHA" "$FRONTEND_URL" >> "$GITHUB_STEP_SUMMARY"
+          printf 'Frontend release: `%s`\n\nSource commit: `%s`\n\nRollback: `%s`\n\nURL: %s\n' \
+            "$RELEASE_TAG" "$SOURCE_SHA" "$ROLLBACK" "$FRONTEND_URL" >> "$GITHUB_STEP_SUMMARY"
 
   smoke:
     name: Verify deployed login and ticket navigation
     needs: deploy
+    # A successful rollback has a skipped build ancestor; still run its browser checks.
+    if: ${{ !cancelled() && needs.deploy.result == 'success' }}
     # Keep Chromium system dependencies compatible with the pinned Playwright.
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -188,3 +270,51 @@ jobs:
             smoke/test-results/
           if-no-files-found: ignore
           retention-days: 3
+
+  publish-release:
+    name: Publish verified frontend release
+    needs: [checks, smoke]
+    if: ${{ !cancelled() && needs.checks.outputs.rollback == 'false' && needs.smoke.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ needs.checks.outputs.release_tag }}
+      SOURCE_SHA: ${{ needs.checks.outputs.source_sha }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist
+      - name: Package the original build and its release metadata
+        run: |
+          tar -czf "$RUNNER_TEMP/frontend-dist.tar.gz" -C dist .
+          python3 - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+
+          directory = Path(os.environ['RUNNER_TEMP'])
+          metadata = {
+              'tag': os.environ['RELEASE_TAG'],
+              'commit': os.environ['SOURCE_SHA'],
+              'environment': 'testing',
+              'workflow': f"{os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+              'sha256': hashlib.sha256((directory / 'frontend-dist.tar.gz').read_bytes()).hexdigest(),
+          }
+          (directory / 'release.json').write_text(json.dumps(metadata, indent=2) + '\n')
+          (directory / 'release-notes.md').write_text(
+              f"Frontend verified in testing by HTTP and browser smoke checks.\n\n"
+              f"Commit: `{metadata['commit']}`\n\nWorkflow: {metadata['workflow']}\n\n"
+              f"To restore, run Release frontend testing with rollback_version set to {metadata['tag'].removeprefix('frontend/v')}.\n"
+          )
+          PY
+      - name: Publish the tag and retained build archive
+        run: |
+          gh release create "$RELEASE_TAG" \
+            "$RUNNER_TEMP/frontend-dist.tar.gz" "$RUNNER_TEMP/release.json" \
+            --repo "$GITHUB_REPOSITORY" --target "$SOURCE_SHA" \
+            --title "$RELEASE_TAG (testing)" --notes-file "$RUNNER_TEMP/release-notes.md" \
+            --prerelease --draft --latest=false
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false
