@@ -17,7 +17,8 @@ and CloudFront.
 
 After merging the workflow into master and waiting for CI and Migration Guard
 to pass on that exact commit, run **Actions → Release frontend testing → Run
-workflow**, selecting master. This workflow does not release the backend.
+workflow**, selecting master and entering a new `version`, such as `1.0.0`.
+Leave `rollback_version` empty. This workflow does not release the backend.
 
 The GitHub `testing` environment needs `AWS_REGION`, `AWS_DEPLOY_ROLE_ARN`,
 `FRONTEND_S3_BUCKET`, and `FRONTEND_URL`. The URL is the CloudFront HTTPS origin
@@ -54,6 +55,42 @@ release but does not roll back uploaded files.
 Before testing login, configure the backend's `BETTER_AUTH_URL` and
 `BETTER_AUTH_TRUSTED_ORIGINS` for the CloudFront HTTPS origin and deploy the new
 task definition. The S3 bucket remains private and readable through CloudFront OAC.
+
+### Named releases and manual rollback
+
+After a new deployment passes HTTP and browser smoke checks, the workflow
+publishes a GitHub prerelease tagged `frontend/v<version>`, such as
+`frontend/v1.0.0`. It is explicitly labeled **testing**, not production, and
+records the source commit and workflow URL. The release includes the original
+`frontend-dist.tar.gz` build and `release.json` metadata with its SHA-256 checksum.
+These release attachments are independent of the temporary 30-day Actions
+artifacts. Keep published release assets available for as long as rollback is
+needed; deleting the release/assets removes this rollback option.
+
+To deploy a new version, set `version` to a fresh `x.y.z` value and leave
+`rollback_version` empty. Existing frontend tags cannot be reused. Publication
+has `contents: write` permission in its own job, without AWS credentials. If
+publication fails, the frontend may already be deployed; inspect the run and
+any draft release before retrying publication. Do not delete working releases.
+
+To restore a version, open **Actions → Release frontend testing → Run workflow →
+master**. Leave `version` empty and set `rollback_version`, for example `1.0.0`.
+The matching `frontend/v1.0.0` release must exist with its build and metadata.
+Previously deployed versions without these release assets cannot be selected;
+the first new named release establishes the initial rollback target.
+
+The workflow requires current master to pass CI and Migration Guard. Rollback
+then skips compilation, downloads the published release archive, checks its
+checksum/tag/source/environment metadata, and regenerates `config.js` from
+**current testing settings**. It uses the normal ordered S3 upload, HTTP checks,
+and browser smoke test. Rollback does not create another release or tag.
+The deployment summary records the version actually deployed.
+
+This is manual restoration, not an atomic switch or automatic recovery. Failed
+checks do not undo uploads. No backend, database, IAM, or CloudFront settings are
+reverted; the restored frontend must remain compatible with the current backend.
+Old hashed assets remain available. To move forward again, restore another
+published version or deploy a fresh version.
 
 ## Runtime configuration
 
