@@ -83,6 +83,15 @@ jobs:
       FRONTEND_S3_BUCKET: ${{ vars.FRONTEND_S3_BUCKET }}
       FRONTEND_URL: ${{ vars.FRONTEND_URL }}
     steps:
+      - name: Require smoke-test account before uploading
+        env:
+          SMOKE_EMAIL: ${{ secrets.SMOKE_EMAIL }}
+          SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}
+        run: |
+          if [ -z "$SMOKE_EMAIL" ] || [ -z "$SMOKE_PASSWORD" ]; then
+            echo "Add SMOKE_EMAIL and SMOKE_PASSWORD to the testing environment secrets."
+            exit 1
+          fi
       - uses: actions/download-artifact@v4
         with:
           name: frontend-dist
@@ -137,3 +146,45 @@ jobs:
       - name: Record deployment
         run: |
           printf 'Frontend commit: `%s`\n\nURL: %s\n' "$GITHUB_SHA" "$FRONTEND_URL" >> "$GITHUB_STEP_SUMMARY"
+
+  smoke:
+    name: Verify deployed login and ticket navigation
+    needs: deploy
+    # Keep Chromium system dependencies compatible with the pinned Playwright.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: testing
+      url: ${{ vars.FRONTEND_URL }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      # Only the root test runner is needed; no frontend/server build or DB setup.
+      - run: pnpm install --frozen-lockfile --filter resolvane
+      - name: Install Chromium and system dependencies
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run deployed browser smoke tests
+        id: smoke
+        env:
+          SMOKE_BASE_URL: ${{ vars.FRONTEND_URL }}
+          SMOKE_EMAIL: ${{ secrets.SMOKE_EMAIL }}
+          SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}
+        run: pnpm test:smoke
+      - name: Upload smoke-test report
+        if: ${{ !cancelled() && steps.smoke.outcome != 'skipped' && steps.smoke.outcome != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-smoke-report
+          path: |
+            smoke/playwright-report/
+            smoke/test-results/
+          if-no-files-found: ignore
+          retention-days: 3
