@@ -98,6 +98,7 @@ export default function LoginPage() {
             <Button type="submit" disabled={isSubmitting} className="mt-2 w-full">
               {isSubmitting ? "Signing in…" : "Sign in"}
             </Button>
+            <p className="text-center text-xs text-muted-foreground">Version 0.0.4</p>
           </form>
         </CardContent>
       </Card>
