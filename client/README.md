@@ -33,6 +33,24 @@ and index.html last, then checks the public HTML, config, and `/tickets` rewrite
 Old hashed assets are retained so existing browser tabs keep working; bucket
 storage cleanup is a separate future task. These HTTP checks do not verify login.
 
+After the HTTP checks, the `smoke` job runs Chromium against the deployed URL:
+login, load Tickets through the real API, refresh `/tickets`, log out, and verify
+the protected page requires login again. Its dedicated Playwright configuration
+does not load local `.env` files, start services, seed users, or modify tickets.
+
+Add `SMOKE_EMAIL` and `SMOKE_PASSWORD` as **secrets** in GitHub's `testing`
+environment. Use an existing dedicated, non-admin agent account in the testing
+database. The workflow does not create that account. Missing secrets fail the
+deployment before any upload. Secrets are not written into the frontend build.
+
+Run the suite directly with `pnpm test:smoke` after setting `SMOKE_BASE_URL`,
+`SMOKE_EMAIL`, and `SMOKE_PASSWORD` in your shell environment. The base URL is
+the HTTPS frontend origin. This suite is separate from the existing local E2E
+suite. Reports are retained for three days and can contain testing account or
+ticket details; treat them as private. Browser traces/video are disabled to
+avoid recording login request credentials. A smoke-test failure fails the
+release but does not roll back uploaded files.
+
 Before testing login, configure the backend's `BETTER_AUTH_URL` and
 `BETTER_AUTH_TRUSTED_ORIGINS` for the CloudFront HTTPS origin and deploy the new
 task definition. The S3 bucket remains private and readable through CloudFront OAC.
